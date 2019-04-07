@@ -30,21 +30,6 @@ COV = coverage.coverage(
 )
 COV.start()
 
-
-# Add test command
-@manager.command
-def test():
-    """
-    Run tests without coverage
-    :return:
-    """
-    tests = unittest.TestLoader().discover('tests', pattern='test*.py')
-    result = unittest.TextTestRunner(verbosity=2).run(tests)
-    if result.wasSuccessful():
-        return 0
-    return 1
-
-
 @manager.command
 def dummy():
     # Create a user if they do not exist.
