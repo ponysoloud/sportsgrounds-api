@@ -5,7 +5,7 @@ postgres_local_base = 'postgresql://postgres:123456@localhost/'
 database_name = 'api'
 
 
-class BaseConfig:
+class Config(object):
     """
     Base application configuration
     """
@@ -13,12 +13,13 @@ class BaseConfig:
     SECRET_KEY = os.getenv('SECRET_KEY', 'my_strong_key')
     BCRYPT_HASH_PREFIX = 14
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ECHO = True
     AUTH_TOKEN_EXPIRY_DAYS = 30
     AUTH_TOKEN_EXPIRY_SECONDS = 3000
     BUCKET_AND_ITEMS_PER_PAGE = 25
 
 
-class DevelopmentConfig(BaseConfig):
+class DevelopmentConfig(Config):
     """
     Development application configuration
     """
@@ -30,7 +31,7 @@ class DevelopmentConfig(BaseConfig):
     BUCKET_AND_ITEMS_PER_PAGE = 4
 
 
-class TestingConfig(BaseConfig):
+class TestingConfig(Config):
     """
     Testing application configuration
     """
@@ -44,7 +45,7 @@ class TestingConfig(BaseConfig):
     BUCKET_AND_ITEMS_PER_PAGE = 3
 
 
-class ProductionConfig(BaseConfig):
+class ProductionConfig(Config):
     """
     Production application configuration
     """

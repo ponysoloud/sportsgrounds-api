@@ -2,6 +2,7 @@ from app import app, db, bcrypt
 import datetime
 import jwt
 
+from enum import Enum
 
 class User(db.Model):
     """
@@ -196,7 +197,6 @@ class BucketItem(db.Model):
     """
     BucketItem model class
     """
-
     __tablename__ = 'bucketitems'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -254,3 +254,207 @@ class BucketItem(db.Model):
             'createdAt': self.create_at.isoformat(),
             'modifiedAt': self.modified_at.isoformat()
         }
+
+grounds_to_activities_table = db.Table('groundactivities',
+    db.Column('ground_id', db.Integer, db.ForeignKey('grounds.id'), primary_key=True),
+    db.Column('activity_id', db.Integer, db.ForeignKey('activities.id'), primary_key=True)
+)
+
+class Ground(db.Model):
+    """
+    Class to represent the Ground model
+    """
+    __tablename__ = 'grounds'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    source_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    district = db.Column(db.String(255), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
+    website = db.Column(db.String(255), nullable=True)
+
+    hasMusic = db.Column(db.Boolean, default=False, nullable=False)
+    hasWifi = db.Column(db.Boolean, default=False, nullable=False)
+    hasToilet = db.Column(db.Boolean, default=False, nullable=False)
+    hasEatery = db.Column(db.Boolean, default=False, nullable=False)
+    hasDressingRoom = db.Column(db.Boolean, default=False, nullable=False)
+    hasLighting = db.Column(db.Boolean, default=False, nullable=False)
+    paid = db.Column(db.Boolean, default=False, nullable=False)
+
+    latitude = db.Column(db.Float(), nullable=False)
+    longitude = db.Column(db.Float(), nullable=False)
+    
+    #user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    create_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime, nullable=False)
+
+    activities = db.relationship('Activity', secondary=grounds_to_activities_table, lazy='dynamic', back_populates='grounds')
+
+    def __init__(self, source_id, name, district, address, website, hasMusic, hasWifi, hasToilet, hasEatery, hasDressingRoom, hasLighting, paid, latitude, longitude):
+        self.source_id = source_id
+        self.name = name
+        self.district = district
+        self.address = address
+        self.website = website
+        self.hasMusic = hasMusic
+        self.hasWifi = hasWifi
+        self.hasToilet = hasToilet
+        self.hasEatery = hasEatery
+        self.hasDressingRoom = hasDressingRoom
+        self.hasLighting = hasLighting
+        self.paid = paid
+
+        self.latitude = latitude
+        self.longitude =longitude
+
+       # self.user_id = user_id
+        self.create_at = datetime.datetime.utcnow()
+        self.modified_at = datetime.datetime.utcnow()
+
+    def save(self):
+        """
+        Persist a ground in the database
+        :return:
+        """
+        db.session.add(self)
+        db.session.commit()
+
+    def update(self, name, district, address, website, hasMusic, hasWifi, hasToilet, hasEatery, hasDressingRoom, hasLighting, paid):
+        """
+        Update the name of the Ground
+        :param name:
+        :return:
+        """
+        self.name = name
+        self.district = district
+        self.address = address
+        self.website = website
+        self.hasMusic = hasMusic
+        self.hasWifi = hasWifi
+        self.hasToilet = hasToilet
+        self.hasEatery = hasEatery
+        self.hasDressingRoom = hasDressingRoom
+        self.hasLighting = hasLighting
+        self.paid = paid
+        db.session.commit()
+
+    def delete(self):
+        """
+        Delete a Bucket from the database
+        :return:
+        """
+        db.session.delete(self)
+        db.session.commit()
+
+    def json(self):
+        """
+        Json representation of the bucket model.
+        :return:
+        """
+        return {
+            'id': self.id,
+            'source_id': self.source_id,
+            'name': self.name,
+            'district': self.district,
+            'createdAt': self.create_at.isoformat(),
+            'modifiedAt': self.modified_at.isoformat()
+        }
+
+class Activity(db.Model):
+
+    __tablename__ = 'activities'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    
+    create_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime, nullable=False)
+
+    grounds = db.relationship('Ground', secondary=grounds_to_activities_table, lazy='dynamic', back_populates='activities')
+
+    def __init__(self, id, name, description):
+        self.id = id
+        self.name = name
+        self.description = description
+
+        self.create_at = datetime.datetime.utcnow()
+        self.modified_at = datetime.datetime.utcnow()
+
+    def save(self):
+        """
+        Persist Item into the database
+        :return:
+        """
+        db.session.add(self)
+        db.session.commit()
+
+    def update(self, name, description=None):
+        """
+        Update the records in the item
+        :param name: Name
+        :param description: Description
+        :return:
+        """
+        self.name = name
+        if description is not None:
+            self.description = description
+        db.session.commit()
+
+    def delete(self):
+        """
+        Delete an item
+        :return:
+        """
+        db.session.delete(self)
+        db.session.commit()
+
+    def json(self):
+        """
+        Json representation of the model
+        :return:
+        """
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description
+        }
+
+class ActivitiesEnum(Enum):
+    easy_training = 1
+    football = 2
+    hockey = 3
+    basketball = 4
+    skating = 5
+    ice_skating = 6
+    workout = 7
+    yoga = 8
+    box = 9
+
+    @property
+    def description(self):
+        if self is Activity.easy_training:
+            return ''
+        if self is Activity.football:
+            return ''
+        if self is Activity.hockey:
+            return ''
+        if self is Activity.basketball:
+            return ''
+        if self is Activity.skating:
+            return ''
+        if self is Activity.ice_skating:
+            return ''
+        if self is Activity.workout:
+            return ''
+        if self is Activity.yoga:
+            return ''
+        if self is Activity.box:
+            return ''
+
+@db.event.listens_for(Activity.__table__, 'after_create')
+def fill_activity_table_with_activities_enum(args):
+    print('fill_activity_table_with_activities_enum')
+    for a in ActivitiesEnum:
+        activity = Activity(a.value, a.name, a.description)
+        activity.save()

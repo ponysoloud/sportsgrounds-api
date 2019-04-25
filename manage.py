@@ -2,7 +2,6 @@ from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 from app import app, db, models
 from app.models import User, Bucket, BucketItem
-import unittest
 import coverage
 import os
 import forgery_py as faker
@@ -18,17 +17,6 @@ migrate = Migrate(app, db)
 # Add the flask migrate
 manager.add_command('db', MigrateCommand)
 
-# Test coverage configuration
-COV = coverage.coverage(
-    branch=True,
-    include='app/*',
-    omit=[
-        'app/auth/__init__.py',
-        'app/bucket/__init__.py',
-        'app/bucketitems/__init__.py'
-    ]
-)
-COV.start()
 
 @manager.command
 def dummy():
