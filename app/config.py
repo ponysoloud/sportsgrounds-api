@@ -1,8 +1,8 @@
 import os
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
-postgres_local_base = 'postgresql://postgres:123456@localhost/'
-database_name = 'api'
+postgres_local_base = 'postgresql://localhost/'
+database_name = 'sg'
 
 
 class Config(object):

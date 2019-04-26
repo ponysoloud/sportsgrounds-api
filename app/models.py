@@ -255,9 +255,9 @@ class BucketItem(db.Model):
             'modifiedAt': self.modified_at.isoformat()
         }
 
-grounds_to_activities_table = db.Table('groundactivities',
-    db.Column('ground_id', db.Integer, db.ForeignKey('grounds.id'), primary_key=True),
-    db.Column('activity_id', db.Integer, db.ForeignKey('activities.id'), primary_key=True)
+grounds_to_activities_table = db.Table('groundsactivities', db.Model.metadata,
+    db.Column('activity_id', db.Integer, db.ForeignKey('activities.id'), primary_key=True),
+    db.Column('ground_id', db.Integer, db.ForeignKey('grounds.id'), primary_key=True)
 )
 
 class Ground(db.Model):
@@ -267,7 +267,7 @@ class Ground(db.Model):
     __tablename__ = 'grounds'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    source_id = db.Column(db.Integer, primary_key=True)
+    source_id = db.Column(db.Integer, nullable=False, unique=True)
     name = db.Column(db.String(255), nullable=False)
     district = db.Column(db.String(255), nullable=False)
     address = db.Column(db.String(255), nullable=False)
@@ -288,7 +288,7 @@ class Ground(db.Model):
     create_at = db.Column(db.DateTime, nullable=False)
     modified_at = db.Column(db.DateTime, nullable=False)
 
-    activities = db.relationship('Activity', secondary=grounds_to_activities_table, lazy='dynamic', back_populates='grounds')
+    activities = db.relationship('Activity', secondary=grounds_to_activities_table, back_populates='grounds')
 
     def __init__(self, source_id, name, district, address, website, hasMusic, hasWifi, hasToilet, hasEatery, hasDressingRoom, hasLighting, paid, latitude, longitude):
         self.source_id = source_id
@@ -360,6 +360,15 @@ class Ground(db.Model):
             'modifiedAt': self.modified_at.isoformat()
         }
 
+    @staticmethod
+    def get_by_source_id(source_id):
+        """
+        Filter a user by Id.
+        :param user_id:
+        :return: User or None
+        """
+        return Ground.query.filter_by(source_id=source_id).first()
+
 class Activity(db.Model):
 
     __tablename__ = 'activities'
@@ -371,7 +380,7 @@ class Activity(db.Model):
     create_at = db.Column(db.DateTime, nullable=False)
     modified_at = db.Column(db.DateTime, nullable=False)
 
-    grounds = db.relationship('Ground', secondary=grounds_to_activities_table, lazy='dynamic', back_populates='activities')
+    grounds = db.relationship('Ground', secondary=grounds_to_activities_table, back_populates='activities')
 
     def __init__(self, id, name, description):
         self.id = id
@@ -420,6 +429,15 @@ class Activity(db.Model):
             'description': self.description
         }
 
+    @staticmethod
+    def get_by_id(id):
+        """
+        Filter a user by Id.
+        :param user_id:
+        :return: User or None
+        """
+        return Activity.query.filter_by(id=id).first()
+
 class ActivitiesEnum(Enum):
     easy_training = 1
     football = 2
@@ -433,28 +451,25 @@ class ActivitiesEnum(Enum):
 
     @property
     def description(self):
-        if self is Activity.easy_training:
+        if self is ActivitiesEnum.easy_training:
             return ''
-        if self is Activity.football:
+        if self is ActivitiesEnum.football:
             return ''
-        if self is Activity.hockey:
+        if self is ActivitiesEnum.hockey:
             return ''
-        if self is Activity.basketball:
+        if self is ActivitiesEnum.basketball:
             return ''
-        if self is Activity.skating:
+        if self is ActivitiesEnum.skating:
             return ''
-        if self is Activity.ice_skating:
+        if self is ActivitiesEnum.ice_skating:
             return ''
-        if self is Activity.workout:
+        if self is ActivitiesEnum.workout:
             return ''
-        if self is Activity.yoga:
+        if self is ActivitiesEnum.yoga:
             return ''
-        if self is Activity.box:
+        if self is ActivitiesEnum.box:
             return ''
 
-@db.event.listens_for(Activity.__table__, 'after_create')
-def fill_activity_table_with_activities_enum(args):
-    print('fill_activity_table_with_activities_enum')
-    for a in ActivitiesEnum:
-        activity = Activity(a.value, a.name, a.description)
-        activity.save()
+    @property
+    def persistent(self):
+        return Activity.get_by_id(self.value)
