@@ -38,6 +38,10 @@ from app.ground.views import ground
 
 app.register_blueprint(ground)
 
+from app.activity.views import activity
+
+app.register_blueprint(activity)
+
 from app.bucket.views import bucket
 
 app.register_blueprint(bucket)

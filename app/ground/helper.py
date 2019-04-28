@@ -2,17 +2,147 @@ import os
 import requests
 from datetime import datetime, date
 from flask import make_response, jsonify, url_for
+from flask_sqlalchemy import BaseQuery
 from app import app, app_sheduler, db
-from app.models import ActivitiesEnum, Activity, Ground
-from app.ground.models import SourceGround
+from app.models import Activity, Ground
+from app.ground.models import SourceGround, ActivitiesEnum
 from app.ground.config import SourceConfig
 
 UPDATE_GROUNDS_DATASET_TIME_DAYS = 1
 UPDATE_GROUNDS_DATASET_JOB_ID = 'app.ground.helper.update_grounds_dataset'
 
+
+def response(status, message, code):
+    """
+    Helper method to make a http response
+    :param status: Status message
+    :param message: Response message
+    :param code: Response status code
+    :return: Http Response
+    """
+    return make_response(jsonify({
+        'status': status,
+        'message': message
+    })), code
+
+
+def response_for_ground(ground):
+    """
+    Return the response for when a single bucket when requested by the user.
+    :param user_bucket:
+    :return:
+    """
+    return make_response(jsonify({
+        'status': 'success',
+        'ground': ground
+    }))
+
+
+def response_for_grounds(grounds):
+    """
+    Return the response for when a single bucket when requested by the user.
+    :param user_bucket:
+    :return:
+    """
+    return make_response(jsonify({
+        'status': 'success',
+        'grounds': grounds
+    }))
+
+
+def get_ground_json_list(grounds):
+    """
+    Make json objects of the grounds and add them to a list.
+    :param user_buckets: Bucket
+    :return:
+    """
+    json_list = []
+    for ground in grounds:
+        json_list.append(ground.json())
+    return json_list
+
+
+def get_ground_geojson_list(grounds):
+    """
+    Make json objects of the grounds and add them to a list.
+    :param user_buckets: Bucket
+    :return:
+    """
+    json_list = []
+    for ground in grounds:
+        json_list.append(ground.geojson())
+    return json_list
+    
+
+def response_with_pagination(grounds, previous, nex, count):
+    """
+    Make a http response for BucketList get requests.
+    :param count: Pagination Total
+    :param nex: Next page Url if it exists
+    :param previous: Previous page Url if it exists
+    :param buckets: Bucket
+    :return: Http Json response
+    """
+    return make_response(jsonify({
+        'status': 'success',
+        'previous': previous,
+        'next': nex,
+        'count': count,
+        'grounds': grounds
+    })), 200
+
+
+def paginate_grounds(user_id, page, latitude, longitude, user):
+    """
+    Get a user by Id, then get hold of their buckets and also paginate the results.
+    There is also an option to search for a bucket name if the query param is set.
+    Generate previous and next pagination urls
+    :param q: Query parameter
+    :param user_id: User Id
+    :param user: Current User
+    :param page: Page number
+    :return: Pagination next url, previous url and the user buckets.
+    """
+
+    if latitude and longitude:
+        grounds_distance_query = db.session.query(Ground, Ground.distance_to(latitude, longitude).label('distance')).order_by('distance')
+        pagination = BaseQuery(grounds_distance_query.subquery(), db.session()) \
+            .paginate(page=page, per_page=app.config['GROUNDS_PER_PAGE'], error_out=False)
+    else:
+        pagination = Ground.query.order_by(Ground.id) \
+            .paginate(page=page, per_page=app.config['GROUNDS_PER_PAGE'], error_out=False)
+
+    previous = None
+    if pagination.has_prev:
+        if latitude and longitude:
+            previous = url_for('ground.grounds', latitude=latitude, longitude=longitude, page=page-1, _external=True)
+        else:
+            previous = url_for('ground.grounds', page=page-1, _external=True)
+
+    nex = None
+    if pagination.has_next:
+        if latitude and longitude:
+            nex = url_for('ground.grounds', latitude=latitude, longitude=longitude, page=page+1, _external=True)
+        else:
+            nex = url_for('ground.grounds', page=page+1, _external=True)
+            
+    items = pagination.items
+
+    def distance_result_to_ground(result):
+        ground = Ground.get_by_id(result.id)
+        ground.distance = result.distance
+        return ground
+
+    if latitude and longitude:
+        items = list(map(distance_result_to_ground, items))
+
+    return items, nex, pagination, previous
+
+
 def begin_sheduled_updating_grounds_dataset(state):
     print('app.ground.helper.begin_sheduled_updating_grounds_dataset')
     app_sheduler.add_job(func=update_grounds_dataset, trigger='interval', days=UPDATE_GROUNDS_DATASET_TIME_DAYS, id=UPDATE_GROUNDS_DATASET_JOB_ID, coalesce=True)
+
 
 def update_grounds_dataset():
     print('app.ground.helper.update_grounds_dataset')
@@ -82,6 +212,7 @@ def update_grounds_dataset():
     except ValueError as error:
         print(error)
 
+
 def get_grounds_source_api_version(url):
     api_version = requests.get(url).json().get("Version", None)
 
@@ -90,6 +221,7 @@ def get_grounds_source_api_version(url):
     else:
         return api_version
 
+
 def get_grounds_source_dataset_rows_count(url, api_key):
     rows_count = requests.get(url, params = {'api_key': api_key}).json().get('ItemsCount', None)
 
@@ -97,6 +229,7 @@ def get_grounds_source_dataset_rows_count(url, api_key):
         raise ValueError('Grounds Source API responsed bad dataset passport')
     else:
         return rows_count
+
 
 def get_grounds_source_dataset_rows(url, api_key, top, skip, source_dataset_name):
     dataset_rows = requests.get(url, params = {'api_key': api_key, '$top': top, '$skip':skip}).json()
@@ -110,7 +243,8 @@ def get_grounds_source_dataset_rows(url, api_key, top, skip, source_dataset_name
 
     return grounds_source_dataset_rows
 
-def isWinter():
+
+def is_winter_today():
     winter_ranges = [(date(2000, 1, 1), date(2000, 3, 31)), (date(2000, 12, 1), date(2000, 12, 31))]
     today = datetime.utcnow().date().replace(year=2000)
 
@@ -120,13 +254,14 @@ def isWinter():
 
     return False
 
+
 def define_ground_activity(source_ground, source_dataset_name):
     if source_dataset_name == 'football_pitches_dataset':
         source_ground.activities.append(ActivitiesEnum.football)
     elif source_dataset_name == 'outdoor_training_grounds_dataset':
         source_ground.activities.append(ActivitiesEnum.workout)
     elif source_dataset_name == 'sports_grounds_dataset':
-        today_is_winter = isWinter()
+        today_is_winter = is_winter_today()
 
         ground_type = source_ground.nameWinter
 
@@ -151,13 +286,16 @@ def define_ground_activity(source_ground, source_dataset_name):
         if today_is_winter:
             if isIceRink:
                 activities.update([ActivitiesEnum.ice_skating, ActivitiesEnum.hockey])
+            else:
+                if isBasketball:
+                    activities.add(ActivitiesEnum.easy_training)
 
-            if isBasketball and not isIceRink:
-                activities.add(ActivitiesEnum.easy_training)
-
-            if not isBasketball and not isIceRink:
-                activities.update([ActivitiesEnum.football, ActivitiesEnum.easy_training])
+                if not isBasketball:
+                    activities.update([ActivitiesEnum.football, ActivitiesEnum.easy_training])
         else:
+            if isIceRink:
+                activities.add(ActivitiesEnum.skating)
+
             if isBasketball:
                 activities.add(ActivitiesEnum.basketball)
 

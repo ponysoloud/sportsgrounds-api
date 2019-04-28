@@ -17,6 +17,7 @@ class Config(object):
     AUTH_TOKEN_EXPIRY_DAYS = 30
     AUTH_TOKEN_EXPIRY_SECONDS = 3000
     BUCKET_AND_ITEMS_PER_PAGE = 25
+    GROUNDS_PER_PAGE = 25
 
 
 class DevelopmentConfig(Config):
@@ -29,6 +30,7 @@ class DevelopmentConfig(Config):
     AUTH_TOKEN_EXPIRY_DAYS = 1
     AUTH_TOKEN_EXPIRY_SECONDS = 20
     BUCKET_AND_ITEMS_PER_PAGE = 4
+    GROUNDS_PER_PAGE = 4
 
 
 class TestingConfig(Config):
@@ -43,6 +45,7 @@ class TestingConfig(Config):
     AUTH_TOKEN_EXPIRY_SECONDS = 3
     AUTH_TOKEN_EXPIRATION_TIME_DURING_TESTS = 5
     BUCKET_AND_ITEMS_PER_PAGE = 3
+    GROUNDS_PER_PAGE = 3
 
 
 class ProductionConfig(Config):
@@ -55,3 +58,4 @@ class ProductionConfig(Config):
     AUTH_TOKEN_EXPIRY_DAYS = 30
     AUTH_TOKEN_EXPIRY_SECONDS = 20
     BUCKET_AND_ITEMS_PER_PAGE = 10
+    GROUNDS_PER_PAGE = 10

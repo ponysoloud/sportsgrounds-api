@@ -1,8 +1,10 @@
-from app import app, db, bcrypt
 import datetime
 import jwt
+import math
+from app import app, db, bcrypt
+from sqlalchemy import orm, func, and_
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
-from enum import Enum
 
 class User(db.Model):
     """
@@ -281,8 +283,8 @@ class Ground(db.Model):
     hasLighting = db.Column(db.Boolean, default=False, nullable=False)
     paid = db.Column(db.Boolean, default=False, nullable=False)
 
-    latitude = db.Column(db.Float(), nullable=False)
-    longitude = db.Column(db.Float(), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
     
     #user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     create_at = db.Column(db.DateTime, nullable=False)
@@ -307,9 +309,16 @@ class Ground(db.Model):
         self.latitude = latitude
         self.longitude =longitude
 
-       # self.user_id = user_id
         self.create_at = datetime.datetime.utcnow()
         self.modified_at = datetime.datetime.utcnow()
+
+        #non orm field
+        self.distance = None
+
+    @orm.reconstructor
+    def init_on_load(self):
+        #non orm field
+        self.distance = None
 
     def save(self):
         """
@@ -348,17 +357,64 @@ class Ground(db.Model):
 
     def json(self):
         """
-        Json representation of the bucket model.
+        Json representation of the ground model.
         :return:
         """
-        return {
+        json = {
             'id': self.id,
             'source_id': self.source_id,
             'name': self.name,
             'district': self.district,
-            'createdAt': self.create_at.isoformat(),
-            'modifiedAt': self.modified_at.isoformat()
+            'address': self.address,
+            'website': self.website,
+            'hasMusic': self.hasMusic,
+            'hasWifi': self.hasWifi,
+            'hasToilet': self.hasToilet,
+            'hasEatery': self.hasEatery,
+            'hasDressingRoom': self.hasDressingRoom,
+            'hasLighting': self.hasLighting,
+            'paid': self.paid,
+            'activities': list(map(lambda a: a.id, self.activities)),
+            'location': {
+                'latitude': self.latitude,
+                'longitude': self.longitude
+            }
         }
+
+        if self.distance:
+            json['distance'] = self.distance
+
+        return json
+
+    def geojson(self):
+        """
+        Json representation of the ground model.
+        :return:
+        """
+        return {
+            'id': self.id,
+            'location': {
+                'latitude': self.latitude,
+                'longitude': self.longitude
+            }
+        }
+
+    @hybrid_method
+    def distance_to(self, lat, lng):
+        return gc_distance(lat, lng, self.latitude, self.longitude)
+
+    @distance_to.expression
+    def distance_to(cls, lat, lng):
+        return gc_distance(lat, lng, cls.latitude, cls.longitude, math=func)
+
+    @staticmethod
+    def get_by_id(id):
+        """
+        Filter a user by Id.
+        :param user_id:
+        :return: User or None
+        """
+        return Ground.query.filter_by(id=id).first()
 
     @staticmethod
     def get_by_source_id(source_id):
@@ -368,6 +424,26 @@ class Ground(db.Model):
         :return: User or None
         """
         return Ground.query.filter_by(source_id=source_id).first()
+
+    @staticmethod
+    def get_by_location_rect(alatitude, alongitude, blatitude, blongitude):
+        """
+        Filter a user by Id.
+        :param user_id:
+        :return: User or None
+        """
+        return Ground.query.filter(and_(Ground.latitude >= min(alatitude, blatitude), Ground.latitude <= max(alatitude, blatitude))) \
+            .filter(and_(Ground.longitude >= min(alongitude, blongitude), Ground.longitude <= max(alongitude, blongitude))).all()
+
+def gc_distance(lat1, lng1, lat2, lng2, math=math):
+    ang = math.acos(math.cos(math.radians(lat1)) *
+                    math.cos(math.radians(lat2)) *
+                    math.cos(math.radians(lng2) -
+                             math.radians(lng1)) +
+                    math.sin(math.radians(lat1)) *
+                    math.sin(math.radians(lat2)))
+
+    return 6371 * ang
 
 class Activity(db.Model):
 
@@ -437,39 +513,3 @@ class Activity(db.Model):
         :return: User or None
         """
         return Activity.query.filter_by(id=id).first()
-
-class ActivitiesEnum(Enum):
-    easy_training = 1
-    football = 2
-    hockey = 3
-    basketball = 4
-    skating = 5
-    ice_skating = 6
-    workout = 7
-    yoga = 8
-    box = 9
-
-    @property
-    def description(self):
-        if self is ActivitiesEnum.easy_training:
-            return ''
-        if self is ActivitiesEnum.football:
-            return ''
-        if self is ActivitiesEnum.hockey:
-            return ''
-        if self is ActivitiesEnum.basketball:
-            return ''
-        if self is ActivitiesEnum.skating:
-            return ''
-        if self is ActivitiesEnum.ice_skating:
-            return ''
-        if self is ActivitiesEnum.workout:
-            return ''
-        if self is ActivitiesEnum.yoga:
-            return ''
-        if self is ActivitiesEnum.box:
-            return ''
-
-    @property
-    def persistent(self):
-        return Activity.get_by_id(self.value)
