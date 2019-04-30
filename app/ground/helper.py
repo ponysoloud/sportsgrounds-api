@@ -4,8 +4,8 @@ from datetime import datetime, date
 from flask import make_response, jsonify, url_for
 from flask_sqlalchemy import BaseQuery
 from app import app, app_sheduler, db
-from app.models import Activity, Ground
-from app.ground.models import SourceGround, ActivitiesEnum
+from app.models import Activity, Ground, GroundActivity
+from app.ground.models import SourceGround
 from app.ground.config import SourceConfig
 
 UPDATE_GROUNDS_DATASET_TIME_DAYS = 1
@@ -201,10 +201,10 @@ def update_grounds_dataset():
                 persistent_ground.hasLighting = g.hasLighting
                 persistent_ground.paid = g.paid
 
-                persistent_ground.activities = list(map(lambda a: a.persistent, g.activities))
+                persistent_ground.activities = list(map(lambda activity: GroundActivity(activity), g.activities))
             else:
                 ground = Ground(g.id, g.name, g.district, g.address, g.website, g.hasMusic, g.hasWifi, g.hasToilet, g.hasEatery, g.hasDressingRoom, g.hasLighting, g.paid, g.latitude, g.longitude)
-                ground.activities = list(map(lambda a: a.persistent, g.activities))
+                ground.activities = list(map(lambda activity: GroundActivity(activity), g.activities))
                 db.session.add(ground)
         
         db.session.commit()
@@ -257,9 +257,9 @@ def is_winter_today():
 
 def define_ground_activity(source_ground, source_dataset_name):
     if source_dataset_name == 'football_pitches_dataset':
-        source_ground.activities.append(ActivitiesEnum.football)
+        source_ground.activities.append(Activity.football)
     elif source_dataset_name == 'outdoor_training_grounds_dataset':
-        source_ground.activities.append(ActivitiesEnum.workout)
+        source_ground.activities.append(Activity.workout)
     elif source_dataset_name == 'sports_grounds_dataset':
         today_is_winter = is_winter_today()
 
@@ -285,29 +285,29 @@ def define_ground_activity(source_ground, source_dataset_name):
         activities = set()
         if today_is_winter:
             if isIceRink:
-                activities.update([ActivitiesEnum.ice_skating, ActivitiesEnum.hockey])
+                activities.update([Activity.ice_skating, Activity.hockey])
             else:
                 if isBasketball:
-                    activities.add(ActivitiesEnum.easy_training)
+                    activities.add(Activity.easy_training)
 
                 if not isBasketball:
-                    activities.update([ActivitiesEnum.football, ActivitiesEnum.easy_training])
+                    activities.update([Activity.football, Activity.easy_training])
         else:
             if isIceRink:
-                activities.add(ActivitiesEnum.skating)
+                activities.add(Activity.skating)
 
             if isBasketball:
-                activities.add(ActivitiesEnum.basketball)
+                activities.add(Activity.basketball)
 
             if isFootball:
-                activities.add(ActivitiesEnum.football)
+                activities.add(Activity.football)
 
             if isUniversal:
                 if isSolidSurface:
-                    activities.add(ActivitiesEnum.skating)
+                    activities.add(Activity.skating)
                 elif isSoilSurface:
-                    activities.add(ActivitiesEnum.football)
+                    activities.add(Activity.football)
                 elif isSoftSurface:
-                    activities.update([ActivitiesEnum.easy_training, ActivitiesEnum.yoga, ActivitiesEnum.box, ActivitiesEnum.football, ActivitiesEnum.basketball])
+                    activities.update([Activity.easy_training, Activity.yoga, Activity.box, Activity.football, Activity.basketball])
 
         source_ground.activities = list(activities)

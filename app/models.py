@@ -1,10 +1,15 @@
 import datetime
 import jwt
 import math
+from enum import Enum
 from app import app, db, bcrypt
 from sqlalchemy import orm, func, and_
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
+# event_participants_table = db.Table('eventparticipants', db.Model.metadata,
+#     db.Column('event_id', db.Integer, db.ForeignKey('events.id'), primary_key=True),
+#     db.Column('paricipant_id', db.Integer, db.ForeignKey('user.id'), primary_key=True) 
+# )
 
 class User(db.Model):
     """
@@ -17,6 +22,8 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     registered_on = db.Column(db.DateTime, nullable=False)
     buckets = db.relationship('Bucket', backref='bucket', lazy='dynamic')
+
+    # events = db.relationship('Event', secondary=event_participants_table, back_populates='participants')
 
     def __init__(self, email, password):
         self.email = email
@@ -257,11 +264,6 @@ class BucketItem(db.Model):
             'modifiedAt': self.modified_at.isoformat()
         }
 
-grounds_to_activities_table = db.Table('groundsactivities', db.Model.metadata,
-    db.Column('activity_id', db.Integer, db.ForeignKey('activities.id'), primary_key=True),
-    db.Column('ground_id', db.Integer, db.ForeignKey('grounds.id'), primary_key=True)
-)
-
 class Ground(db.Model):
     """
     Class to represent the Ground model
@@ -286,11 +288,10 @@ class Ground(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     
-    #user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     create_at = db.Column(db.DateTime, nullable=False)
     modified_at = db.Column(db.DateTime, nullable=False)
 
-    activities = db.relationship('Activity', secondary=grounds_to_activities_table, back_populates='grounds')
+    activities = db.relationship('GroundActivity', lazy='dynamic')
 
     def __init__(self, source_id, name, district, address, website, hasMusic, hasWifi, hasToilet, hasEatery, hasDressingRoom, hasLighting, paid, latitude, longitude):
         self.source_id = source_id
@@ -307,7 +308,7 @@ class Ground(db.Model):
         self.paid = paid
 
         self.latitude = latitude
-        self.longitude =longitude
+        self.longitude = longitude
 
         self.create_at = datetime.datetime.utcnow()
         self.modified_at = datetime.datetime.utcnow()
@@ -374,7 +375,7 @@ class Ground(db.Model):
             'hasDressingRoom': self.hasDressingRoom,
             'hasLighting': self.hasLighting,
             'paid': self.paid,
-            'activities': list(map(lambda a: a.id, self.activities)),
+            'activities': list(map(lambda a: a.activity.value, self.activities)),
             'location': {
                 'latitude': self.latitude,
                 'longitude': self.longitude
@@ -436,80 +437,81 @@ class Ground(db.Model):
             .filter(and_(Ground.longitude >= min(alongitude, blongitude), Ground.longitude <= max(alongitude, blongitude))).all()
 
 def gc_distance(lat1, lng1, lat2, lng2, math=math):
-    ang = math.acos(math.cos(math.radians(lat1)) *
-                    math.cos(math.radians(lat2)) *
-                    math.cos(math.radians(lng2) -
-                             math.radians(lng1)) +
-                    math.sin(math.radians(lat1)) *
-                    math.sin(math.radians(lat2)))
+        ang = math.acos(math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+                        math.cos(math.radians(lng2) - math.radians(lng1)) +
+                        math.sin(math.radians(lat1)) * math.sin(math.radians(lat2)))
+        return 6371 * ang
 
-    return 6371 * ang
+# Activity
 
-class Activity(db.Model):
+class Activity(Enum):
+    easy_training = 1
+    football = 2
+    hockey = 3
+    basketball = 4
+    skating = 5
+    ice_skating = 6
+    workout = 7
+    yoga = 8
+    box = 9
 
-    __tablename__ = 'activities'
+    @property
+    def description(self):
+        if self is Activity.easy_training:
+            return ''
+        if self is Activity.football:
+            return ''
+        if self is Activity.hockey:
+            return ''
+        if self is Activity.basketball:
+            return ''
+        if self is Activity.skating:
+            return ''
+        if self is Activity.ice_skating:
+            return ''
+        if self is Activity.workout:
+            return ''
+        if self is Activity.yoga:
+            return ''
+        if self is Activity.box:
+            return ''
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    
-    create_at = db.Column(db.DateTime, nullable=False)
-    modified_at = db.Column(db.DateTime, nullable=False)
-
-    grounds = db.relationship('Ground', secondary=grounds_to_activities_table, back_populates='activities')
-
-    def __init__(self, id, name, description):
-        self.id = id
-        self.name = name
-        self.description = description
-
-        self.create_at = datetime.datetime.utcnow()
-        self.modified_at = datetime.datetime.utcnow()
-
-    def save(self):
-        """
-        Persist Item into the database
-        :return:
-        """
-        db.session.add(self)
-        db.session.commit()
-
-    def update(self, name, description=None):
-        """
-        Update the records in the item
-        :param name: Name
-        :param description: Description
-        :return:
-        """
-        self.name = name
-        if description is not None:
-            self.description = description
-        db.session.commit()
-
-    def delete(self):
-        """
-        Delete an item
-        :return:
-        """
-        db.session.delete(self)
-        db.session.commit()
-
+    @property
     def json(self):
         """
         Json representation of the model
         :return:
         """
         return {
-            'id': self.id,
+            'id': self.value,
             'name': self.name,
             'description': self.description
         }
 
-    @staticmethod
-    def get_by_id(id):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
-        return Activity.query.filter_by(id=id).first()
+class GroundActivity(db.Model):
+
+    __tablename__ = 'groundactivities'
+
+    ground_id = db.Column(db.Integer, db.ForeignKey('grounds.id'), primary_key=True)
+    activity = db.Column(db.Enum(Activity), primary_key=True)
+
+    def __init__(self, activity):
+        self.activity = activity
+
+
+# class Event(db.Model):
+
+#     __tablename__ = 'events'
+
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     description = db.Column(db.Text, nullable=True)
+#     activity = db.Column(db.Integer, db.ForeignKey('activities.id'))
+#     status = db.Column(db.String(255), nullable=False)
+
+#     begins_at = db.Column(db.DateTime, nullable=False)
+#     ends_at = db.Column(db.DateTime, nullable=False)
+
+#     create_at = db.Column(db.DateTime, nullable=False)
+#     modified_at = db.Column(db.DateTime, nullable=False)
+
+#     participants = db.relationship('User', secondary=event_participants_table, back_populates='events')

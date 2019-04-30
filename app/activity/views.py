@@ -16,10 +16,7 @@ def activities(current_user):
     :param current_user:
     :return:
     """
-    activities = Activity.query.all()
-    if not activities:
-        activities = []
-    return response_for_activities(get_activity_json_list(activities))
+    return response_for_activities(get_activity_json_list(Activity))
 
 
 @activity.route('/activities/<activity_id>', methods=['GET'])
@@ -36,7 +33,7 @@ def get_activity(current_user, activity_id):
     except ValueError:
         return response('failed', 'Please provide a valid Activity Id', 400)
     else:
-        activity = Activity.get_by_id(activity_id)
+        activity = Activity(activity_id)
         if activity:
             return response_for_activity(activity.json())
         return response('failed', "Activity not found", 404)

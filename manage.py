@@ -3,7 +3,6 @@ from flask_migrate import Migrate, MigrateCommand
 from app import app, db, models, app_sheduler
 from app.models import User, Bucket, BucketItem, Activity
 from app.ground.helper import update_grounds_dataset
-from app.ground.models import ActivitiesEnum
 import coverage
 import os
 import forgery_py as faker
@@ -18,15 +17,9 @@ migrate = Migrate(app, db)
 
 # Add the flask migrate
 manager.add_command('db', MigrateCommand)
-
-@manager.command
-def populate_activities():
-    for a in ActivitiesEnum:
-        activity = Activity(a.value, a.name, a.description)
-        activity.save()
     
 @manager.command
-def update_grounds():
+def load_grounds():
     update_grounds_dataset()
 
 @manager.command

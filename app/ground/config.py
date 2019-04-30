@@ -10,4 +10,3 @@ class SourceConfig(object):
         'sports_grounds_dataset': 893,
         'outdoor_training_grounds_dataset': 898
     }
-
