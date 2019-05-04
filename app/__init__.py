@@ -42,6 +42,10 @@ from app.activity.views import activity
 
 app.register_blueprint(activity)
 
+from app.event.views import event
+
+app.register_blueprint(event)
+
 from app.bucket.views import bucket
 
 app.register_blueprint(bucket)

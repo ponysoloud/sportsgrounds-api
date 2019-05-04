@@ -45,5 +45,5 @@ def get_activity_json_list(activities):
     """
     json_list = []
     for activity in activities:
-        json_list.append(activity.json())
+        json_list.append(activity.json)
     return json_list

@@ -7,12 +7,12 @@ from app.models import Activity
 activity = Blueprint('activity', __name__)
 
 
-@activity.route('/activities/', methods=['GET'])
+@activity.route('/activities', methods=['GET'])
 @token_required
 def activities(current_user):
     """
     Return all the grounds owned by the user or limit them to 10.
-    Return an empty buckets object if user has no buckets
+    Return an empty activities object if user has no buckets
     :param current_user:
     :return:
     """
@@ -23,21 +23,17 @@ def activities(current_user):
 @token_required
 def get_activity(current_user, activity_id):
     """
-    Return a user bucket with the supplied user Id.
+    Return an activity object for the supplied activity id.
     :param current_user: User
-    :param bucket_id: Bucket Id
+    :param activity_id: Activity Id
     :return:
     """
     try:
-        int(activity_id)
+        activity = Activity(int(activity_id))
+        return response_for_activity(activity.json)
     except ValueError:
-        return response('failed', 'Please provide a valid Activity Id', 400)
-    else:
-        activity = Activity(activity_id)
-        if activity:
-            return response_for_activity(activity.json())
-        return response('failed', "Activity not found", 404)
-
+        return response('failed', "Activity not found", 404)      
+        
 
 @activity.errorhandler(404)
 def handle_404_error(e):

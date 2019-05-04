@@ -31,6 +31,7 @@ def token_required(f):
                 'message': 'Token is missing'
             })), 401
 
+        decode_response = None
         try:
             decode_response = User.decode_auth_token(token)
             current_user = User.query.filter_by(id=decode_response).first()

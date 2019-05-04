@@ -83,7 +83,7 @@ def grounds_geography(current_user):
                 float(sw_latitude)
                 float(sw_longitude)
             except ValueError:
-                return response('failed', 'Wrong coordinates format', 400)
+                return response('failed', 'Wrong coordinates values type', 400)
 
             grounds = Ground.get_by_location_rect(ne_latitude, ne_longitude, sw_latitude, sw_longitude)
             if not grounds:

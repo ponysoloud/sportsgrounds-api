@@ -141,7 +141,7 @@ def paginate_grounds(user_id, page, latitude, longitude, user):
 
 def begin_sheduled_updating_grounds_dataset(state):
     print('app.ground.helper.begin_sheduled_updating_grounds_dataset')
-    app_sheduler.add_job(func=update_grounds_dataset, trigger='interval', days=UPDATE_GROUNDS_DATASET_TIME_DAYS, id=UPDATE_GROUNDS_DATASET_JOB_ID, coalesce=True)
+    app_sheduler.add_job(func=update_grounds_dataset, trigger='interval', days=UPDATE_GROUNDS_DATASET_TIME_DAYS, id=UPDATE_GROUNDS_DATASET_JOB_ID, coalesce=True, replace_existing=True)
 
 
 def update_grounds_dataset():
@@ -200,11 +200,12 @@ def update_grounds_dataset():
                 persistent_ground.hasDressingRoom = g.hasDressingRoom
                 persistent_ground.hasLighting = g.hasLighting
                 persistent_ground.paid = g.paid
-
-                persistent_ground.activities = list(map(lambda activity: GroundActivity(activity), g.activities))
+                
+                persistent_ground.activities.intersection_update(g.activities)
+                persistent_ground.activities.update(g.activities)
             else:
                 ground = Ground(g.id, g.name, g.district, g.address, g.website, g.hasMusic, g.hasWifi, g.hasToilet, g.hasEatery, g.hasDressingRoom, g.hasLighting, g.paid, g.latitude, g.longitude)
-                ground.activities = list(map(lambda activity: GroundActivity(activity), g.activities))
+                ground.activities = set(g.activities)
                 db.session.add(ground)
         
         db.session.commit()
