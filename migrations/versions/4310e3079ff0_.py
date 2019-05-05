@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f530a3e1f2a4
+Revision ID: 4310e3079ff0
 Revises: 
-Create Date: 2019-05-04 03:35:46.248229
+Create Date: 2019-05-06 02:13:49.522512
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f530a3e1f2a4'
+revision = '4310e3079ff0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -50,6 +50,11 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('password', sa.String(length=255), nullable=False),
+    sa.Column('name', sa.Text(), nullable=False),
+    sa.Column('surname', sa.Text(), nullable=False),
+    sa.Column('birthday', sa.DateTime(), nullable=False),
+    sa.Column('image_url', sa.Text(), nullable=True),
+    sa.Column('rating', sa.Integer(), nullable=False),
     sa.Column('registered_on', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
@@ -89,6 +94,13 @@ def upgrade():
     sa.ForeignKeyConstraint(['ground_id'], ['grounds.id'], ),
     sa.PrimaryKeyConstraint('ground_id', 'activity')
     )
+    op.create_table('userratings',
+    sa.Column('rated_user_id', sa.Integer(), nullable=False),
+    sa.Column('rated_by_user_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['rated_by_user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['rated_user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('rated_user_id', 'rated_by_user_id')
+    )
     op.create_table('bucketitems',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
@@ -106,6 +118,7 @@ def upgrade():
     )
     op.create_table('teams',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('max_participants', sa.Integer(), nullable=False),
     sa.Column('tourney_id', sa.Integer(), nullable=True),
     sa.Column('create_at', sa.DateTime(), nullable=False),
     sa.Column('modified_at', sa.DateTime(), nullable=False),
@@ -148,6 +161,7 @@ def downgrade():
     op.drop_table('teams')
     op.drop_table('tourneyevents')
     op.drop_table('bucketitems')
+    op.drop_table('userratings')
     op.drop_table('groundactivities')
     op.drop_table('events')
     op.drop_table('buckets')

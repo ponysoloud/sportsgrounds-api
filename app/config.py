@@ -18,6 +18,8 @@ class Config(object):
     AUTH_TOKEN_EXPIRY_SECONDS = 3000
     BUCKET_AND_ITEMS_PER_PAGE = 25
     GROUNDS_PER_PAGE = 25
+    EVENTS_PER_PAGE = 25
+    TEAMS_PER_PAGE = 25
 
 
 class DevelopmentConfig(Config):

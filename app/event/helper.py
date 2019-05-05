@@ -114,15 +114,15 @@ def paginate_events(page, ground_id, status_value, activity_value, type_value, u
         events_query = db.session.query(Event, event_status).filter(event_status==status.name)
         event_status = BaseQuery(events_query.subquery(), db.session())
 
-    pagination = events_query.paginate(page=page, per_page=app.config['GROUNDS_PER_PAGE'], error_out=False)
+    pagination = events_query.paginate(page=page, per_page=app.config['EVENTS_PER_PAGE'], error_out=False)
 
     previous = None
     if pagination.has_prev:
-        previous = url_for('ground.grounds', ground=ground_id, status=status_value, activity=activity_value, type=type_value, page=page-1, _external=True)
+        previous = url_for('event.events', ground=ground_id, status=status_value, activity=activity_value, type=type_value, page=page-1, _external=True)
 
     nex = None
     if pagination.has_next:
-        nex = url_for('ground.grounds', ground=ground_id, status=status_value, activity=activity_value, type=type_value, page=page+1, _external=True)
+        nex = url_for('event.events', ground=ground_id, status=status_value, activity=activity_value, type=type_value, page=page+1, _external=True)
             
     items = pagination.items
 

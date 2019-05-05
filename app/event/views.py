@@ -152,24 +152,39 @@ def create_event(current_user):
         #parsing specified type attributes
 
         if event_type is EventType.training:
-            event = Event.initTraining(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
-            event.ground = ground
-            event.save()
-        elif event_type is EventType.match:
-            event = Event.initMatch(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
-            event.ground = ground
-            event.save()
-        elif event_type is EventType.tourney:
-            teams_count = event_value.get('teamsCount', 3)
+            participants_count = event_value.get('participantsCount', 5)
 
             try:
-                int(teams_count)
+                int(participants_count)
             except ValueError:
-                return response('failed', "Wrong teamsCount attribute type", 400)
+                return response('failed', "Wrong participantsCount attribute type", 400)
 
-            event = Event.initTourney(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_count)
+            event = Event.init_training(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, participants_count)
             event.ground = ground
             event.save()
+        else:
+            teams_size = event_value.get('teamsSize', 5)
+
+            try:
+                int(teams_size)
+            except ValueError:
+                return response('failed', "Wrong teamsSize attribute type", 400)
+
+            if event_type is EventType.match:
+                event = Event.init_match(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_size)
+                event.ground = ground
+                event.save()
+            elif event_type is EventType.tourney:
+                teams_count = event_value.get('teamsCount', 3)
+
+                try:
+                    int(teams_count)
+                except ValueError:
+                    return response('failed', "Wrong teamsCount attribute type", 400)
+
+                event = Event.init_tourney(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_size, teams_count)
+                event.ground = ground
+                event.save()
 
         return response_for_created_event(event, 201)
     return response('failed', 'Content-type must be json', 202)
@@ -272,6 +287,97 @@ def delete_event(current_user, event_id):
         abort(404)
     event.delete()
     return response('success', 'Event successfully deleted', 200)
+
+
+@event.route('/events/<event_id>/actions/join', methods=['POST'])
+@token_required
+def join_to_event(current_user, event_id):
+    """
+    Deleting a User Bucket from the database if it exists.
+    :param current_user:
+    :param bucket_id:
+    :return:
+    """
+    team_id = request.args.get('teamId', None, type=int)
+
+    try:
+        int(event_id)
+    except ValueError:
+        return response('failed', 'Please provide a valid Event Id', 400)
+
+    user = User.get_by_id(current_user.id)
+    event = Event.get_by_id(event_id)
+    if not event:
+        abort(404)
+    
+    if team_id:
+        team = Team.get_by_id(team_id)
+
+        if not team:
+            return response('failed', 'Team cannot be found', 404)
+
+        if not team in event.teams:
+            return response('failed', 'The Event with Id ' + event_id + ' doesn\'t have Team with Id ' + team_id, 404)
+
+    elif event.type is EventType.training:
+        team = event.training.team
+    else:
+        return response('failed', 'Event with given Id requires teamId to join', 404)
+    
+    #check requirements to join
+    if not (event.participants_age_from <= user.age <= event.participants_age_to):
+        return response('failed', 'User\'s age does\'t meet the requirements of the event', 400)
+
+    if user in team.participants:
+        return response('failed', 'User already joined to the team', 400)
+
+    if team.is_full:
+        return response('failed', 'Team is full', 400)
+
+    # remove user from other team in event
+    for t in event.teams:
+        if user in t.participants:
+            t.participants.remove(user)
+
+    # add user to team
+    team.participants.append(user)
+    team.update()
+
+    return response_for_created_event(event, 201)
+
+
+@event.route('/events/<event_id>/actions/leave', methods=['POST'])
+@token_required
+def leave_from_event(current_user, event_id):
+    """
+    Deleting a User Bucket from the database if it exists.
+    :param current_user:
+    :param bucket_id:
+    :return:
+    """
+    try:
+        int(event_id)
+    except ValueError:
+        return response('failed', 'Please provide a valid Event Id', 400)
+
+    user = User.get_by_id(current_user.id)
+    event = Event.get_by_id(event_id)
+    if not event:
+        abort(404)
+
+    team = None
+
+    for t in event.teams:
+        if user in t.participants:
+            team = t
+    
+    if not team:
+        return response('failed', 'Team to leave cannot be found', 404)
+
+    team.participants.remove(user)
+    team.update()
+
+    return response_for_created_event(event, 201)
 
 
 @event.errorhandler(404)

@@ -14,6 +14,11 @@ team_participants_table = db.Table('teamparticipants', db.Model.metadata,
     db.Column('paricipant_id', db.Integer, db.ForeignKey('users.id'), primary_key=True) 
 )
 
+user_ratings_table = db.Table('userratings', db.Model.metadata,
+    db.Column('rated_user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('rated_by_user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True) 
+)
+
 class User(db.Model):
     """
     Table schema
@@ -23,17 +28,40 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+
+    name = db.Column(db.Text, nullable=False)
+    surname = db.Column(db.Text, nullable=False)
+
+    birthday = db.Column(db.DateTime, nullable=False)
+    image_url = db.Column(db.Text, nullable=True)
+    
+    rating = db.Column(db.Integer, default=0, nullable=False)
+
     registered_on = db.Column(db.DateTime, nullable=False)
+
     buckets = db.relationship('Bucket', backref='bucket', lazy='dynamic')
 
     events = db.relationship('Event', back_populates='owner', lazy='dynamic')
     teams = db.relationship('Team', secondary=team_participants_table, back_populates='participants', lazy='dynamic')
 
-    def __init__(self, email, password):
+    rated_by_me_users = db.relationship('User',
+                            secondary=user_ratings_table,
+                            primaryjoin=id==user_ratings_table.c.rated_user_id,
+                            secondaryjoin=id==user_ratings_table.c.rated_by_user_id,
+                            backref="rated_me_users"
+    )
+
+    def __init__(self, email, password, name, surname, birthday, image_url=None):
         self.email = email
-        self.password = bcrypt.generate_password_hash(password, app.config.get('BCRYPT_LOG_ROUNDS')) \
-            .decode('utf-8')
-        self.registered_on = datetime.datetime.now()
+        self.password = bcrypt.generate_password_hash(password, app.config.get('BCRYPT_LOG_ROUNDS')).decode('utf-8')
+
+        self.name = name
+        self.surname = surname
+
+        self.birthday = birthday
+        self.image_url = image_url
+
+        self.registered_on = datetime.datetime.utcnow()
 
     def save(self):
         """
@@ -45,6 +73,32 @@ class User(db.Model):
         db.session.commit()
         return self.encode_auth_token(self.id)
 
+    def update(self):
+        db.session.commit()
+
+    def json(self, other_user=None):
+        json = {
+            'name': self.name,
+            'surname': self.surname,
+            'image_url': self.image_url,
+            'rating': len(self.rated_me_users)
+        }
+
+        if other_user:
+            json['rated'] = self.rated_by_user(other_user)
+
+        return json
+
+    def personaljson(self):
+        return {
+            'email': self.email,
+            'name': self.name,
+            'surname': self.surname,
+            'image_url': self.image_url,
+            'rating': len(self.rated_me_users),
+            'rated': self.rated_by_user(self)
+        }
+
     def encode_auth_token(self, user_id):
         """
         Encode the Auth token
@@ -54,8 +108,7 @@ class User(db.Model):
         try:
             payload = {
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=app.config.get('AUTH_TOKEN_EXPIRY_DAYS'),
-                                                                       seconds=app.config.get(
-                                                                           'AUTH_TOKEN_EXPIRY_SECONDS')),
+                                                                       seconds=app.config.get('AUTH_TOKEN_EXPIRY_SECONDS')),
                 'iat': datetime.datetime.utcnow(),
                 'sub': user_id
             }
@@ -66,6 +119,32 @@ class User(db.Model):
             )
         except Exception as e:
             return e
+
+    def reset_password(self, new_password):
+        """
+        Update/reset the user password.
+        :param new_password: New User Password
+        :return:
+        """
+        self.password = bcrypt.generate_password_hash(new_password, app.config.get('BCRYPT_LOG_ROUNDS')) \
+            .decode('utf-8')
+        db.session.commit()
+
+    def rated_by_user(self, user):
+        if self.id == user.id:
+            return True
+        else:
+            print(self.rated_me_users)
+            return user in self.rated_me_users
+
+    @hybrid_property
+    def age(self):
+        today = datetime.datetime.utcnow()
+        return today.year - self.birthday.year - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
+
+    @age.expression
+    def age(cls):
+        return func.datediff(text('year'), utcnow(), cls.birthday)
 
     @staticmethod
     def decode_auth_token(token):
@@ -102,16 +181,6 @@ class User(db.Model):
         :return:
         """
         return User.query.filter_by(email=email).first()
-
-    def reset_password(self, new_password):
-        """
-        Update/reset the user password.
-        :param new_password: New User Password
-        :return:
-        """
-        self.password = bcrypt.generate_password_hash(new_password, app.config.get('BCRYPT_LOG_ROUNDS')) \
-            .decode('utf-8')
-        db.session.commit()
 
 
 class BlackListToken(db.Model):
@@ -655,29 +724,6 @@ class Event(db.Model):
         self.create_at = datetime.datetime.utcnow()
         self.modified_at = datetime.datetime.utcnow()
 
-    @hybrid_property
-    def status(self):
-        today = datetime.datetime.utcnow()
-
-        if self.canceled:
-            return EventStatus.canceled
-        elif today < self.begin_at:
-            return EventStatus.scheduled
-        elif today <= self.end_at:
-            return EventStatus.processing
-        else:
-            return EventStatus.ended
-
-    @status.expression
-    def status(cls):
-        return case(
-            [
-                (cls.canceled == True, EventStatus.canceled.name),
-                (and_(cls.canceled == False, utcnow() < cls.begin_at), EventStatus.scheduled.name),
-                (and_(cls.canceled == False, utcnow() <= cls.end_at, utcnow() >= cls.begin_at), EventStatus.processing.name),
-            ],
-            else_=EventStatus.ended.name)
-
     def save(self):
         """
         Persist Item into the database
@@ -734,6 +780,29 @@ class Event(db.Model):
             'event': event_json
         }
 
+    @hybrid_property
+    def status(self):
+        today = datetime.datetime.utcnow()
+
+        if self.canceled:
+            return EventStatus.canceled
+        elif today < self.begin_at:
+            return EventStatus.scheduled
+        elif today <= self.end_at:
+            return EventStatus.processing
+        else:
+            return EventStatus.ended
+
+    @status.expression
+    def status(cls):
+        return case(
+            [
+                (cls.canceled == True, EventStatus.canceled.name),
+                (and_(cls.canceled == False, utcnow() < cls.begin_at), EventStatus.scheduled.name),
+                (and_(cls.canceled == False, utcnow() <= cls.end_at, utcnow() >= cls.begin_at), EventStatus.processing.name),
+            ],
+            else_=EventStatus.ended.name)
+
     @property
     def subevent(self):
         if self.type is EventType.training:
@@ -743,22 +812,40 @@ class Event(db.Model):
         if self.type is EventType.tourney:
             return self.tourney
 
+    @property
+    def teams(self):
+        if self.type is EventType.training:
+            return [self.training.team]
+        if self.type is EventType.match:
+            return [self.match.team_a, self.match.team_b]
+        if self.type is EventType.tourney:
+            return self.tourney.teams
+
     @staticmethod
-    def initTraining(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at):
+    def init_training(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, max_participants):
         event = Event(user, title, description, activity, EventType.training, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
-        event.training = TrainingEvent(user)
+        training = TrainingEvent(max_participants)
+        training.team.participants.append(user)
+        event.training = training
+        
         return event
 
     @staticmethod
-    def initMatch(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at):
+    def init_match(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_size):
         event = Event(user, title, description, activity, EventType.match, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
-        event.match = MatchEvent(user)
+        match = MatchEvent(teams_size)
+        match.teamA.participants.append(user)
+        event.match = match
+
         return event
 
     @staticmethod
-    def initTourney(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_count=3):
+    def init_tourney(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_size, teams_count=3):
         event = Event(user, title, description, activity, EventType.tourney, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
-        event.tourney = TourneyEvent(user, teams_count)
+        tourney = TourneyEvent(teams_size, teams_count)
+        tourney.teams.first().participants.append(user)
+        event.tourney = tourney
+
         return event
 
     @staticmethod
@@ -795,18 +882,15 @@ class TrainingEvent(db.Model):
     event = db.relationship('Event', backref=orm.backref('training', uselist=False, cascade="all, delete-orphan", single_parent=True))
     team = db.relationship('Team', backref=orm.backref('training', uselist=False), cascade="all, delete-orphan", single_parent=True)
 
-    def __init__(self, user):
-        self.team = Team([user])
+    def __init__(self, max_participants):
+        self.team = Team(max_participants)
 
     def json(self):
         """
         Json representation of the model
         :return:
         """
-        return {
-            'id': self.team.id,
-            'participantsCount': len(self.team.participants)
-        }
+        return self.team.json()
 
 class MatchEvent(db.Model):
     __tablename__ = 'matchevents'
@@ -823,9 +907,9 @@ class MatchEvent(db.Model):
     team_a = db.relationship('Team', backref=orm.backref('match_a', uselist=False), foreign_keys=[team_a_id], cascade="all, delete-orphan", single_parent=True)
     team_b = db.relationship('Team', backref=orm.backref('match_b', uselist=False), foreign_keys=[team_b_id], cascade="all, delete-orphan", single_parent=True)
 
-    def __init__(self, user):
-        self.team_a = Team([user])
-        self.team_b = Team([])
+    def __init__(self, teams_size):
+        self.team_a = Team(team_size)
+        self.team_b = Team(team_size)
 
     def update(self, scoreA, scoreB):
         """
@@ -846,14 +930,8 @@ class MatchEvent(db.Model):
         return {
             'scoreA': self.team_a_score,
             'scoreB': self.team_b_score,
-            'teamA': {
-                'id': self.team_a.id,
-                'participantsCount': len(self.team_a.participants)
-            },
-            'teamB': {
-                'id': self.team_b.id,
-                'participantsCount': len(self.team_b.participants)
-            }
+            'teamA': self.team_a.json(),
+            'teamB': self.team_b.json()
         }
     
 class TourneyEvent(db.Model):
@@ -864,9 +942,8 @@ class TourneyEvent(db.Model):
     event = db.relationship('Event', backref=orm.backref('tourney', uselist=False, cascade="all, delete-orphan"))
     teams = db.relationship('Team', backref='tourney', cascade="all, delete-orphan", single_parent=True)
 
-    def __init__(self, user, teams_count=3):
-        count = teams_count if teams_count >= 3 else 3
-        self.teams = [Team([user])] + [Team() for i in range(count - 1)]
+    def __init__(self, teams_size, teams_count=3):
+        self.teams = [Team(teams_size) for i in range(teams_count)]
 
     def update(self, teams_count):
         teams_diff = teams_count - len(self.teams)
@@ -881,22 +958,24 @@ class TourneyEvent(db.Model):
         """
         return {
             'teamsCount': len(self.teams),
-            'teams': list(map(lambda t: {'id': t.id, 'participantsCount': len(t.participants)}, self.teams))
+            'teams': list(map(lambda t: t.json(), self.teams))
         }
 
 class Team(db.Model):
     __tablename__ = 'teams'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    max_participants = db.Column(db.Integer, nullable=False)
+
     tourney_id = db.Column(db.Integer, db.ForeignKey('tourneyevents.event_id'), nullable=True)
 
     create_at = db.Column(db.DateTime, nullable=False)
     modified_at = db.Column(db.DateTime, nullable=False)
 
-    participants = db.relationship('User', secondary=team_participants_table, back_populates='teams')
+    participants = db.relationship('User', secondary=team_participants_table, back_populates='teams', lazy='dynamic')
 
-    def __init__(self, participants=[]):
-        self.participants = participants
+    def __init__(self, max_participants):
+        self.max_participants = max_participants
 
         self.create_at = datetime.datetime.utcnow()
         self.modified_at = datetime.datetime.utcnow()
@@ -907,6 +986,9 @@ class Team(db.Model):
         :return:
         """
         db.session.add(self)
+        db.session.commit()
+
+    def update(self):
         db.session.commit()
 
     def delete(self):
@@ -924,8 +1006,8 @@ class Team(db.Model):
         """
         return {
             'id': self.id, 
-            'participantsCount': self.participants.count,
-            'participants': list(map(lambda p: p.id, self.participants))
+            'maxParticipants': self.max_participants,
+            'participants': list(map(lambda p: p.json(), self.participants))
         }
 
     @property
@@ -934,6 +1016,19 @@ class Team(db.Model):
             return self.match_a
         else:
             return self.match_b
+
+    @property
+    def event(self):
+        if self.tourney:
+            return self.tourney.event
+        if self.match:
+            return self.match.event
+        if self.training:
+            return self.training.event
+
+    @property
+    def is_full(self):
+        return len(self.participants) == self.max_participants
 
     @staticmethod
     def get_by_id(id):

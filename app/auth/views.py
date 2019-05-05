@@ -5,6 +5,7 @@ from app.models import User, BlackListToken
 from app.auth.helper import response, response_auth
 from sqlalchemy import exc
 from app.auth.helper import token_required
+from dateutil.parser import isoparse
 import re
 
 auth = Blueprint('auth', __name__)
@@ -24,10 +25,36 @@ class RegisterUser(MethodView):
             post_data = request.get_json()
             email = post_data.get('email')
             password = post_data.get('password')
+
+            name = post_data.get('name')
+            surname = post_data.get('surname')
+
+            birthday_value = post_data.get('birthday')
+
+            if not email:
+                return response('failed', 'Missing email attribute', 400)
+
+            if not password:
+                return response('failed', 'Missing password attribute', 400)
+
+            if not name:
+                return response('failed', 'Missing name attribute', 400)
+
+            if not surname:
+                return response('failed', 'Missing surname attribute', 400)
+
+            if not birthday_value:
+                return response('failed', 'Missing birthday attribute', 400)
+
+            try:
+                birthday = isoparse(str(birthday_value))
+            except ValueError:
+                return response('failed', 'Wrong birthday attribute type', 400)
+
             if re.match(r"[^@]+@[^@]+\.[^@]+", email) and len(password) > 4:
                 user = User.get_by_email(email)
                 if not user:
-                    token = User(email=email, password=password).save()
+                    token = User(email, password, name, surname, birthday).save()
                     return response_auth('success', 'Successfully registered', token, 201)
                 else:
                     return response('failed', 'Failed, User already exists, Please sign In', 400)

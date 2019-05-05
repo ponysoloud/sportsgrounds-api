@@ -34,6 +34,10 @@ from app.auth.views import auth
 
 app.register_blueprint(auth)
 
+from app.user.views import user
+
+app.register_blueprint(user)
+
 from app.ground.views import ground
 
 app.register_blueprint(ground)
@@ -45,6 +49,10 @@ app.register_blueprint(activity)
 from app.event.views import event
 
 app.register_blueprint(event)
+
+from app.team.views import team
+
+app.register_blueprint(team)
 
 from app.bucket.views import bucket
 
