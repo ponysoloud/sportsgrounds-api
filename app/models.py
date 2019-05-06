@@ -43,6 +43,7 @@ class User(db.Model):
 
     events = db.relationship('Event', back_populates='owner', lazy='dynamic')
     teams = db.relationship('Team', secondary=team_participants_table, back_populates='participants', lazy='dynamic')
+    messages = db.relationship('EventMessage', back_populates='sender', order_by='desc(EventMessage.create_at)', lazy='dynamic')
 
     rated_by_me_users = db.relationship('User',
                             secondary=user_ratings_table,
@@ -285,6 +286,7 @@ class BucketItem(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     bucket_id = db.Column(db.Integer, db.ForeignKey('buckets.id'))
+
     create_at = db.Column(db.DateTime, nullable=False)
     modified_at = db.Column(db.DateTime, nullable=False)
 
@@ -708,6 +710,7 @@ class Event(db.Model):
 
     owner = db.relationship('User', back_populates='events')
     ground = db.relationship('Ground', back_populates='events')
+    messages = db.relationship('EventMessage', back_populates='event', order_by='desc(EventMessage.create_at)', lazy='dynamic')
 
     def __init__(self, user, title, description, activity, type, participants_level, participants_age_from, participants_age_to, begin_at, end_at):
         self.owner = user
@@ -1038,3 +1041,52 @@ class Team(db.Model):
         :return: User or None
         """
         return Team.query.filter_by(id=id).first()
+
+class EventMessage(db.Model):
+    __tablename__ = 'eventmessages'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'))
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    text = db.Column(db.Text, nullable=False)
+
+    create_at = db.Column(db.DateTime, nullable=False)
+
+    event = db.relationship('Event', back_populates='messages')
+    sender = db.relationship('User', back_populates='messages')
+
+    def __init__(self, sender, text):
+        self.sender = sender
+        self.text = text
+
+        self.create_at = datetime.datetime.utcnow()
+
+    def save(self):
+        """
+        Persist Item into the database
+        :return:
+        """
+        db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        """
+        Delete an item
+        :return:
+        """
+        db.session.delete(self)
+        db.session.commit()
+
+    def json(self):
+        """
+        Json representation of the model
+        :return:
+        """
+        return {
+            'id': self.id,
+            'eventId': self.event_id,
+            'sender': self.sender.json(),
+            'text': self.text,
+            'createdAt': self.create_at.isoformat()
+        }

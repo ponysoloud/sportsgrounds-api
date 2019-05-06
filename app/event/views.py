@@ -1,8 +1,11 @@
 from dateutil.parser import isoparse
 from flask import Blueprint, request, abort
 from app.auth.helper import token_required
-from app.event.helper import response, response_for_event, response_for_created_event, response_with_pagination, get_event_json_list, paginate_events
-from app.models import User, Ground, Activity, Event, TrainingEvent, MatchEvent, TourneyEvent, EventType, EventStatus, EventParticipantsLevel, Team
+from app.event.helper import response, response_for_event, response_for_created_event, response_for_created_message, \
+    response_with_pagination_events, response_with_pagination_messages, get_event_json_list, get_message_json_list, \
+    paginate_events, paginate_messages
+from app.models import User, Ground, Activity, Event, TrainingEvent, MatchEvent, TourneyEvent, EventType, EventStatus, \
+    EventParticipantsLevel, Team, EventMessage
 
 # Initialize blueprint
 event = Blueprint('event', __name__)
@@ -27,8 +30,8 @@ def events(current_user):
     items, nex, pagination, previous = paginate_events(page, ground, status, type, activity, user)
 
     if items:
-        return response_with_pagination(get_event_json_list(items), previous, nex, pagination.total)
-    return response_with_pagination([], previous, nex, 0)
+        return response_with_pagination_events(get_event_json_list(items), previous, nex, pagination.total)
+    return response_with_pagination_events([], previous, nex, 0)
 
 
 @event.route('/events', methods=['POST'])
@@ -262,8 +265,6 @@ def edit_event(current_user, event_id):
         if teams_count:
             if event.type is EventType.tourney:
                 event.subevent.update(teams_count)
-            else:
-                return response('failed', 'No attribute or value was specified, nothing was changed', 400)
 
         return response_for_created_event(event, 201)
     return response('failed', 'Content-type must be json', 202)
@@ -378,6 +379,74 @@ def leave_from_event(current_user, event_id):
     team.update()
 
     return response_for_created_event(event, 201)
+
+
+@event.route('/events/<event_id>/messages', methods=['GET'])
+@token_required
+def get_event_messages(current_user, event_id):
+    """
+    Deleting a User Bucket from the database if it exists.
+    :param current_user:
+    :param bucket_id:
+    :return:
+    """
+    page = request.args.get('page', 1, type=int)
+
+    try:
+        int(event_id)
+    except ValueError:
+        return response('failed', 'Please provide a valid Event Id', 400)
+
+    user = User.get_by_id(current_user.id)
+    event = Event.get_by_id(event_id)
+    if not event:
+        abort(404)
+
+    items, nex, pagination, previous = paginate_messages(page, event, user)
+
+    if items:
+        return response_with_pagination_messages(get_message_json_list(items), previous, nex, pagination.total)
+    return response_with_pagination_messages([], previous, nex, 0)
+
+
+@event.route('/events/<event_id>/messages', methods=['POST'])
+@token_required
+def create_event_message(current_user, event_id):
+    """
+    Deleting a User Bucket from the database if it exists.
+    :param current_user:
+    :param bucket_id:
+    :return:
+    """
+    if request.content_type == 'application/json':
+        try:
+            int(event_id)
+        except ValueError:
+            return response('failed', 'Please provide a valid Event Id', 400)
+
+        event = Event.get_by_id(event_id)
+        if not event:
+            return response('failed', 'The Event with Id ' + event_id + ' does not exist', 404)
+
+        user = User.get_by_id(current_user.id)
+
+        data = request.get_json()
+        text = data.get('text')
+
+        if not text:
+            return response('failed', 'Missing text attribute', 400)
+
+        try:
+            str(text)
+        except ValueError:
+            return response('failed', "Wrong text attribute type", 400)
+
+        message = EventMessage(user, text)
+        event.messages.append(message)
+        event.update()
+
+        return response_for_created_message(message, 201)
+    return response('failed', 'Content-type must be json', 202)
 
 
 @event.errorhandler(404)
