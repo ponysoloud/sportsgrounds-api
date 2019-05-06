@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 
@@ -21,6 +22,9 @@ bcrypt = Bcrypt(app)
 
 # Initialize Flask Sql Alchemy
 db = SQLAlchemy(app)
+
+# Initialize SocketIO
+sockets = SocketIO(app)
 
 # Initialize Sheduler
 app_sheduler = BackgroundScheduler(timezone='utc')

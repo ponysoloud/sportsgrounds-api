@@ -1,9 +1,12 @@
+import json
 from dateutil.parser import isoparse
 from flask import Blueprint, request, abort
+from flask_socketio import send, emit, join_room, leave_room
+from app import sockets
 from app.auth.helper import token_required
 from app.event.helper import response, response_for_event, response_for_created_event, response_for_created_message, \
     response_with_pagination_events, response_with_pagination_messages, get_event_json_list, get_message_json_list, \
-    paginate_events, paginate_messages
+    paginate_events, paginate_messages, extract_parameters_from_socket_event_data
 from app.models import User, Ground, Activity, Event, TrainingEvent, MatchEvent, TourneyEvent, EventType, EventStatus, \
     EventParticipantsLevel, Team, EventMessage
 
@@ -447,6 +450,86 @@ def create_event_message(current_user, event_id):
 
         return response_for_created_message(message, 201)
     return response('failed', 'Content-type must be json', 202)
+
+# Event chat
+
+@sockets.on('join', namespace='/event/messages')
+def on_join_event_chat(data):
+    """Sent by clients when they enter a room.
+    A status message is broadcast to all people in the room."""
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    user, event, error = extract_parameters_from_socket_event_data(data)
+
+    if error:
+        emit('status', {
+            'status': 'failed',
+            'message': error
+        }, room=request.sid)
+    else:
+        join_room(event.id)
+
+        emit('joined', {
+            'status': 'success',
+            'user': user.json()
+        }, room=event.id)
+
+
+@sockets.on('message', namespace='/event/messages')
+def message(data):
+    """Sent by a client when the user entered a new message.
+    The message is sent to all people in the room."""
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    user, event, error = extract_parameters_from_socket_event_data(data)
+
+    if error:
+        emit('status', {
+            'status': 'failed',
+            'message': error
+        }, room=request.sid)
+    else:
+        message = data.get('message')
+    
+        if message and isinstance(message, str):
+            event_message = EventMessage(user, message)
+            event.messages.append(event_message)
+            event.update()
+
+            emit('message', {
+                'status': 'success',
+                'newMessage': event_message.json()
+            }, room=event.id)
+        else:
+            emit('message', {
+                'status': 'failed',
+                'message': 'Wrong type of Message attribute'
+            }, room=event.id)
+
+
+@sockets.on('leave', namespace='/event/messages')
+def on_leave_event_chat(data):
+    """Sent by clients when they leave a room.
+    A status message is broadcast to all people in the room."""
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    user, event, error = extract_parameters_from_socket_event_data(data)
+
+    if error:
+        emit('status', {
+            'status': 'failed',
+            'message': error
+        }, room=request.sid)
+    else:
+        leave_room(event.id)
+
+        emit('leaved', {
+            'status': 'success',
+            'user': user.json()
+        }, room=event.id)
 
 
 @event.errorhandler(404)

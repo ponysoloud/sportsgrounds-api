@@ -4,7 +4,7 @@ from datetime import datetime, date
 from flask import make_response, jsonify, url_for
 from flask_sqlalchemy import BaseQuery
 from app import app, db
-from app.models import Event, EventStatus, EventType, Ground
+from app.models import Event, EventStatus, EventType, Ground, User
 
 def response(status, message, code):
     """
@@ -75,6 +75,36 @@ def get_message_json_list(messages):
     for message in messages:
         json_list.append(message.json())
     return json_list
+
+def extract_parameters_from_socket_event_data(data):
+    token = data.get('token')
+        
+    if not token:
+        return None, None, 'Token is missing'
+
+    decode_response = None
+    try:
+        decode_response = User.decode_auth_token(token)
+        current_user = User.query.filter_by(id=decode_response).first()
+    except:
+        message = 'Invalid token'
+        if isinstance(decode_response, str):
+            message = decode_response
+        return None, None, message
+
+    event_id = data.get('eventId')
+
+    try:
+        int(event_id)
+    except ValueError:
+        return None, None, 'Invalid Event Id'
+
+    event = Event.get_by_id(event_id)
+
+    if not event:
+        return None, None, 'Event cannot be found'
+
+    return current_user, event, None
 
 def response_with_pagination_events(events, previous, nex, count):
     """

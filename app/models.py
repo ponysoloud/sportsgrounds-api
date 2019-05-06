@@ -1084,7 +1084,6 @@ class EventMessage(db.Model):
         :return:
         """
         return {
-            'id': self.id,
             'eventId': self.event_id,
             'sender': self.sender.json(),
             'text': self.text,
