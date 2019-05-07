@@ -20,6 +20,8 @@ class Config(object):
     GROUNDS_PER_PAGE = 25
     EVENTS_PER_PAGE = 25
     TEAMS_PER_PAGE = 25
+    MESSAGES_PER_PAGE = 25
+    USERS_PER_PAGE = 25
 
 
 class DevelopmentConfig(Config):
@@ -33,6 +35,10 @@ class DevelopmentConfig(Config):
     AUTH_TOKEN_EXPIRY_SECONDS = 20
     BUCKET_AND_ITEMS_PER_PAGE = 4
     GROUNDS_PER_PAGE = 4
+    EVENTS_PER_PAGE = 4
+    TEAMS_PER_PAGE = 4
+    USERS_PER_PAGE = 6
+    MESSAGES_PER_PAGE = 10
 
 
 class TestingConfig(Config):
@@ -48,6 +54,10 @@ class TestingConfig(Config):
     AUTH_TOKEN_EXPIRATION_TIME_DURING_TESTS = 5
     BUCKET_AND_ITEMS_PER_PAGE = 3
     GROUNDS_PER_PAGE = 3
+    EVENTS_PER_PAGE = 4
+    TEAMS_PER_PAGE = 4
+    USERS_PER_PAGE = 6
+    MESSAGES_PER_PAGE = 10
 
 
 class ProductionConfig(Config):
@@ -61,3 +71,7 @@ class ProductionConfig(Config):
     AUTH_TOKEN_EXPIRY_SECONDS = 20
     BUCKET_AND_ITEMS_PER_PAGE = 10
     GROUNDS_PER_PAGE = 10
+    EVENTS_PER_PAGE = 10
+    TEAMS_PER_PAGE = 10
+    USERS_PER_PAGE = 10
+    MESSAGES_PER_PAGE = 25

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, abort
 from app.auth.helper import token_required
-from app.user.helper import response, response_for_user, response_for_user_personal, response_for_rated_user
+from app.user.helper import response, response_for_user, response_for_user_personal, response_for_rated_user, response_with_pagination_teammates, \
+    get_user_json_list, paginate_teammates
 from app.models import User
 
 # Initialize blueprint
@@ -40,6 +41,32 @@ def get_user(current_user, user_id):
                 return response_for_user_personal(user)
             else:
                 return response_for_user(user, User.get_by_id(current_user.id))
+        return response('failed', "User not found", 404)
+
+
+@user.route('/users/<user_id>/teammates', methods=['GET'])
+@token_required
+def get_user_teammates(current_user, user_id):
+    """
+    Return all the grounds owned by the user or limit them to 10.
+    Return an empty Grounds object if user has no grounds
+    :param current_user:
+    :return:
+    """
+    try:
+        int(user_id)
+    except ValueError:
+        return response('failed', 'Please provide a valid User Id', 400)
+    else:
+        user = User.get_by_id(user_id)
+        page = request.args.get('page', 1, type=int)
+
+        if user:
+            items, nex, pagination, previous = paginate_teammates(page, user)
+
+            if items:
+                return response_with_pagination_teammates(get_user_json_list(items), previous, nex, pagination.total)
+            return response_with_pagination_teammates([], previous, nex, 0)
         return response('failed', "User not found", 404)
 
 

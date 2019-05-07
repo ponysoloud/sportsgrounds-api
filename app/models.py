@@ -63,6 +63,13 @@ class User(db.Model):
         self.image_url = image_url
 
         self.registered_on = datetime.datetime.utcnow()
+        #non orm field
+        self.commonTeams = None
+
+    @orm.reconstructor
+    def init_on_load(self):
+        #non orm field
+        self.commonTeams = None
 
     def save(self):
         """
@@ -79,6 +86,7 @@ class User(db.Model):
 
     def json(self, other_user=None):
         json = {
+            'id': self.id,
             'name': self.name,
             'surname': self.surname,
             'image_url': self.image_url,
@@ -92,6 +100,7 @@ class User(db.Model):
 
     def personaljson(self):
         return {
+            'id': self.id,
             'email': self.email,
             'name': self.name,
             'surname': self.surname,
@@ -766,12 +775,13 @@ class Event(db.Model):
             'title': self.title,
             'description': self.description,
             'activity': self.activity.value,
+            'status': self.status.value,
             str(self.type.name): self.subevent.json(),
             'requiredLevel': self.participants_level.value,
             'requiredAgeFrom': self.participants_age_from,
             'requiredAgeTo': self.participants_age_to,
             'groundId': self.ground_id,
-            'status': self.status.value,
+            'owner': self.owner.json(),
             'beginAt': self.begin_at.isoformat(),
             'endAt': self.end_at.isoformat(),
             'createdAt': self.create_at.isoformat(),
@@ -837,7 +847,7 @@ class Event(db.Model):
     def init_match(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_size):
         event = Event(user, title, description, activity, EventType.match, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
         match = MatchEvent(teams_size)
-        match.teamA.participants.append(user)
+        match.team_a.participants.append(user)
         event.match = match
 
         return event
@@ -846,7 +856,7 @@ class Event(db.Model):
     def init_tourney(user, title, description, activity, participants_level, participants_age_from, participants_age_to, begin_at, end_at, teams_size, teams_count=3):
         event = Event(user, title, description, activity, EventType.tourney, participants_level, participants_age_from, participants_age_to, begin_at, end_at)
         tourney = TourneyEvent(teams_size, teams_count)
-        tourney.teams.first().participants.append(user)
+        tourney.teams[0].participants.append(user)
         event.tourney = tourney
 
         return event
@@ -910,9 +920,11 @@ class MatchEvent(db.Model):
     team_a = db.relationship('Team', backref=orm.backref('match_a', uselist=False), foreign_keys=[team_a_id], cascade="all, delete-orphan", single_parent=True)
     team_b = db.relationship('Team', backref=orm.backref('match_b', uselist=False), foreign_keys=[team_b_id], cascade="all, delete-orphan", single_parent=True)
 
+    # teams = db.relationship('Team', primaryjoin='Team.id==MatchEvent.team_a_id or Team.id==MatchEvent.team_b_id', backref=orm.backref('match', uselist=False, viewonly=True), viewonly=True)
+
     def __init__(self, teams_size):
-        self.team_a = Team(team_size)
-        self.team_b = Team(team_size)
+        self.team_a = Team(teams_size)
+        self.team_b = Team(teams_size)
 
     def update(self, scoreA, scoreB):
         """
@@ -949,10 +961,16 @@ class TourneyEvent(db.Model):
         self.teams = [Team(teams_size) for i in range(teams_count)]
 
     def update(self, teams_count):
-        teams_diff = teams_count - len(self.teams)
+        teams_size = 5
+        event_teams_count = len(self.teams)
+
+        if event_teams_count > 0:
+            teams_size = self.teams[0].max_participants
+
+        teams_diff = teams_count - event_teams_count
         if teams_diff > 0:
             for i in range(teams_diff):
-                self.teams.append(Team())
+                self.teams.append(Team(teams_size))
 
     def json(self):
         """
@@ -1031,7 +1049,7 @@ class Team(db.Model):
 
     @property
     def is_full(self):
-        return len(self.participants) == self.max_participants
+        return self.participants.count() == self.max_participants
 
     @staticmethod
     def get_by_id(id):

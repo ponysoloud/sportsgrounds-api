@@ -28,9 +28,10 @@ def events(current_user):
     status = request.args.get('status', None, type=int)
     type = request.args.get('type', None, type=int)
     activity = request.args.get('activity', None, type=int)
-    user = request.args.get('userId', None, type=int)
+    owner = request.args.get('ownerId', None, type=int)
+    participant = request.args.get('participantId', None, type=int)
 
-    items, nex, pagination, previous = paginate_events(page, ground, status, type, activity, user)
+    items, nex, pagination, previous = paginate_events(page, ground, status, type, activity, owner, participant)
 
     if items:
         return response_with_pagination_events(get_event_json_list(items), previous, nex, pagination.total)

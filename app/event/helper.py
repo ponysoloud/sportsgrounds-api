@@ -3,8 +3,9 @@ import requests
 from datetime import datetime, date
 from flask import make_response, jsonify, url_for
 from flask_sqlalchemy import BaseQuery
+from sqlalchemy import orm, func, and_, or_, case
 from app import app, db
-from app.models import Event, EventStatus, EventType, Ground, User
+from app.models import Event, EventStatus, EventType, TrainingEvent, MatchEvent, TourneyEvent, Ground, User, Team, Activity
 
 def response(status, message, code):
     """
@@ -140,7 +141,7 @@ def response_with_pagination_messages(messages, previous, nex, count):
         'messages': messages
     })), 200
 
-def paginate_events(page, ground_id, status_value, activity_value, type_value, user_id):
+def paginate_events(page, ground_id, status_value, type_value, activity_value, owner_id, participant_id):
     """
     Get a user by Id, then get hold of their buckets and also paginate the results.
     There is also an option to search for a bucket name if the query param is set.
@@ -156,9 +157,26 @@ def paginate_events(page, ground_id, status_value, activity_value, type_value, u
     status = EventStatus(status_value) if status_value else None
     activity = Activity(activity_value) if activity_value else None
     type = EventType(type_value) if type_value else None
-    user = User.get_by_id(user_id) if user_id else None
+    owner = User.get_by_id(owner_id) if owner_id else None
+    participant = User.get_by_id(participant_id) if participant_id else None
 
     events_query = Event.query
+
+    if participant:
+        training_events_query = Event.query.join(TrainingEvent).join(Team).join(Team.participants).filter(User.id==participant_id)
+        match_events_query = Event.query.join(MatchEvent).join(Team, or_(Team.id==MatchEvent.team_a_id, Team.id==MatchEvent.team_b_id)).join(Team.participants).filter(User.id==participant_id)
+        tourney_events_query = Event.query.join(TourneyEvent).join(Team).join(Team.participants).filter(User.id==participant_id)
+
+        events_query = training_events_query.union(match_events_query).union(tourney_events_query)
+
+    if status:
+        events_query = events_query.filter(Event.status==status.name)
+
+        if status is EventStatus.scheduled or status is EventStatus.processing:
+            events_query = events_query.order_by(Event.begin_at)
+
+        if status is EventStatus.ended:
+            events_query = events_query.order_by(Event.end_at.desc())
 
     if ground:
         events_query = events_query.filter_by(ground_id=ground.id)
@@ -169,34 +187,20 @@ def paginate_events(page, ground_id, status_value, activity_value, type_value, u
     if type:
         events_query = events_query.filter_by(type=type)
 
-    if user:
-        events_query = events_query.filter_by(owner=user)
-
-    if status:
-        if status is EventStatus.scheduled or status is EventStatus.processing:
-            events_query = events_query.order_by(Event.begin_at)
-
-        if status is EventStatus.ended:
-            events_query = events_query.order_by(Event.end_at.desc())
-
-        event_status = Event.status.label('status')
-        events_query = db.session.query(Event, event_status).filter(event_status==status.name)
-        event_status = BaseQuery(events_query.subquery(), db.session())
+    if owner:
+        events_query = events_query.filter_by(owner=owner)
 
     pagination = events_query.paginate(page=page, per_page=app.config['EVENTS_PER_PAGE'], error_out=False)
 
     previous = None
     if pagination.has_prev:
-        previous = url_for('event.events', groundId=ground_id, status=status_value, activity=activity_value, type=type_value, userId=user_id, page=page-1, _external=True)
+        previous = url_for('event.events', groundId=ground_id, status=status_value, activity=activity_value, type=type_value, ownerId=owner_id, participantId=participant_id, page=page-1, _external=True)
 
     nex = None
     if pagination.has_next:
-        nex = url_for('event.events', groundId=ground_id, status=status_value, activity=activity_value, type=type_value, userId=user_id, page=page+1, _external=True)
+        nex = url_for('event.events', groundId=ground_id, status=status_value, activity=activity_value, type=type_value, ownerId=owner_id, participantId=participant_id, page=page+1, _external=True)
             
     items = pagination.items
-
-    if status:
-        items = list(map(lambda r: r.Event, items))
 
     return items, nex, pagination, previous
 
@@ -221,7 +225,7 @@ def paginate_messages(page, event, user_id):
 
     nex = None
     if pagination.has_next:
-        nex = url_for('event.get_event_messages', event_id=event.id, type=type_value, page=page+1, _external=True)
+        nex = url_for('event.get_event_messages', event_id=event.id, page=page+1, _external=True)
             
     items = pagination.items
     return items, nex, pagination, previous
