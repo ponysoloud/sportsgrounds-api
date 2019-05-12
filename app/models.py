@@ -39,8 +39,6 @@ class User(db.Model):
 
     registered_on = db.Column(db.DateTime, nullable=False)
 
-    buckets = db.relationship('Bucket', backref='bucket', lazy='dynamic')
-
     events = db.relationship('Event', back_populates='owner', lazy='dynamic')
     teams = db.relationship('Team', secondary=team_participants_table, back_populates='participants', lazy='dynamic')
     messages = db.relationship('EventMessage', back_populates='sender', order_by='desc(EventMessage.create_at)', lazy='dynamic')
@@ -81,7 +79,8 @@ class User(db.Model):
         db.session.commit()
         return self.encode_auth_token(self.id)
 
-    def update(self):
+    def update(self, image_url):
+        self.image_url = image_url
         db.session.commit()
 
     def json(self, other_user=None):
@@ -226,127 +225,6 @@ class BlackListToken(db.Model):
         if response:
             return True
         return False
-
-
-class Bucket(db.Model):
-    """
-    Class to represent the BucketList model
-    """
-    __tablename__ = 'buckets'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    create_at = db.Column(db.DateTime, nullable=False)
-    modified_at = db.Column(db.DateTime, nullable=False)
-    items = db.relationship('BucketItem', backref='item', lazy='dynamic')
-
-    def __init__(self, name, user_id):
-        self.name = name
-        self.user_id = user_id
-        self.create_at = datetime.datetime.utcnow()
-        self.modified_at = datetime.datetime.utcnow()
-
-    def save(self):
-        """
-        Persist a bucket in the database
-        :return:
-        """
-        db.session.add(self)
-        db.session.commit()
-
-    def update(self, name):
-        """
-        Update the name of the Bucket
-        :param name:
-        :return:
-        """
-        self.name = name
-        db.session.commit()
-
-    def delete(self):
-        """
-        Delete a Bucket from the database
-        :return:
-        """
-        db.session.delete(self)
-        db.session.commit()
-
-    def json(self):
-        """
-        Json representation of the bucket model.
-        :return:
-        """
-        return {
-            'id': self.id,
-            'name': self.name,
-            'createdAt': self.create_at.isoformat(),
-            'modifiedAt': self.modified_at.isoformat()
-        }
-
-
-class BucketItem(db.Model):
-    """
-    BucketItem model class
-    """
-    __tablename__ = 'bucketitems'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    bucket_id = db.Column(db.Integer, db.ForeignKey('buckets.id'))
-
-    create_at = db.Column(db.DateTime, nullable=False)
-    modified_at = db.Column(db.DateTime, nullable=False)
-
-    def __init__(self, name, description, bucket_id):
-        self.name = name
-        self.description = description
-        self.bucket_id = bucket_id
-        self.create_at = datetime.datetime.utcnow()
-        self.modified_at = datetime.datetime.utcnow()
-
-    def save(self):
-        """
-        Persist Item into the database
-        :return:
-        """
-        db.session.add(self)
-        db.session.commit()
-
-    def update(self, name, description=None):
-        """
-        Update the records in the item
-        :param name: Name
-        :param description: Description
-        :return:
-        """
-        self.name = name
-        if description is not None:
-            self.description = description
-        db.session.commit()
-
-    def delete(self):
-        """
-        Delete an item
-        :return:
-        """
-        db.session.delete(self)
-        db.session.commit()
-
-    def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
-        return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
-            'bucketId': self.bucket_id,
-            'createdAt': self.create_at.isoformat(),
-            'modifiedAt': self.modified_at.isoformat()
-        }
 
 class Ground(db.Model):
     """

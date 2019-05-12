@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4310e3079ff0
+Revision ID: 3cde77c2297e
 Revises: 
-Create Date: 2019-05-06 02:13:49.522512
+Create Date: 2019-05-12 22:55:24.923507
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '4310e3079ff0'
+revision = '3cde77c2297e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -59,15 +59,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
-    op.create_table('buckets',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=255), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('create_at', sa.DateTime(), nullable=False),
-    sa.Column('modified_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('events',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('owner_id', sa.Integer(), nullable=True),
@@ -101,14 +92,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['rated_user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('rated_user_id', 'rated_by_user_id')
     )
-    op.create_table('bucketitems',
+    op.create_table('eventmessages',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=255), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('bucket_id', sa.Integer(), nullable=True),
+    sa.Column('event_id', sa.Integer(), nullable=True),
+    sa.Column('sender_id', sa.Integer(), nullable=True),
+    sa.Column('text', sa.Text(), nullable=False),
     sa.Column('create_at', sa.DateTime(), nullable=False),
-    sa.Column('modified_at', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['bucket_id'], ['buckets.id'], ),
+    sa.ForeignKeyConstraint(['event_id'], ['events.id'], ),
+    sa.ForeignKeyConstraint(['sender_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('tourneyevents',
@@ -160,11 +151,10 @@ def downgrade():
     op.drop_table('matchevents')
     op.drop_table('teams')
     op.drop_table('tourneyevents')
-    op.drop_table('bucketitems')
+    op.drop_table('eventmessages')
     op.drop_table('userratings')
     op.drop_table('groundactivities')
     op.drop_table('events')
-    op.drop_table('buckets')
     op.drop_table('users')
     op.drop_table('grounds')
     op.drop_table('blacklist_token')

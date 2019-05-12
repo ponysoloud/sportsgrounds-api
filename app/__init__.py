@@ -58,13 +58,9 @@ from app.team.views import team
 
 app.register_blueprint(team)
 
-from app.bucket.views import bucket
+from app.uploads.views import uploads
 
-app.register_blueprint(bucket)
-
-from app.bucketitems.views import bucketitems
-
-app.register_blueprint(bucketitems)
+app.register_blueprint(uploads)
 
 from app.docs.views import docs
 

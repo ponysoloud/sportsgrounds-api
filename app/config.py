@@ -22,6 +22,7 @@ class Config(object):
     TEAMS_PER_PAGE = 25
     MESSAGES_PER_PAGE = 25
     USERS_PER_PAGE = 25
+    UPLOAD_FOLDER = 'app/uploads/files'
 
 
 class DevelopmentConfig(Config):

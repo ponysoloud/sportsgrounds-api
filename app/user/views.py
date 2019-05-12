@@ -1,11 +1,14 @@
-from flask import Blueprint, request, abort
+from werkzeug.utils import secure_filename
+from flask import Blueprint, request, abort, url_for, redirect
 from app.auth.helper import token_required
 from app.user.helper import response, response_for_user, response_for_user_personal, response_for_rated_user, response_with_pagination_teammates, \
     get_user_json_list, paginate_teammates
+from app.uploads.helper import upload_file, allowed_file, secure_filename
 from app.models import User
 
 # Initialize blueprint
 user = Blueprint('user', __name__)
+
 
 @user.route('/user', methods=['GET'])
 @token_required
@@ -19,6 +22,35 @@ def get_current_user(current_user):
 
     user = User.get_by_id(current_user.id)
     return response_for_user_personal(user)
+
+
+@user.route('/user', methods=['PUT'])
+@token_required
+def edit_user(current_user):
+    """
+    Return all the grounds owned by the user or limit them to 10.
+    Return an empty Grounds object if user has no grounds
+    :param current_user:
+    :return:
+    """
+    image = request.files.get('image', None)
+
+    if not image:
+        return response('failed', 'Missing image attribute', 404)
+
+    if not allowed_file(image.filename):
+        return response('failed', 'Wrong image format', 400)
+    
+    user = User.get_by_id(current_user.id)
+
+    try:
+        image_name = secure_filename(user, image.filename)
+        image_url = upload_file(image_name, image)
+    except ValueError:
+        return response('failed', 'Wrong image format', 400)
+
+    user.update(image_url)
+    return redirect(url_for('uploads.download_file', filename=image_name))
 
 
 @user.route('/users/<user_id>', methods=['GET'])
@@ -148,3 +180,7 @@ def handle_400_errors(e):
     :return:
     """
     return response('failed', 'Bad Request', 400)
+
+@user.errorhandler(413)
+def handle_413_errors(e):
+    return response('failed', 'Uploading file is too large', 413)
