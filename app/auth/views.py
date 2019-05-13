@@ -55,7 +55,7 @@ class RegisterUser(MethodView):
                 user = User.get_by_email(email)
                 if not user:
                     token = User(email, password, name, surname, birthday).save()
-                    return response_auth('success', 'Successfully registered', token, 201)
+                    return response_auth('success', token, 201)
                 else:
                     return response('failed', 'Failed, User already exists, Please sign In', 400)
             return response('failed', 'Missing or wrong email format or password is less than four characters', 400)
@@ -75,7 +75,7 @@ class LoginUser(MethodView):
             if re.match(r"[^@]+@[^@]+\.[^@]+", email) and len(password) > 4:
                 user = User.query.filter_by(email=email).first()
                 if user and bcrypt.check_password_hash(user.password, password):
-                    return response_auth('success', 'Successfully logged In', user.encode_auth_token(user.id), 200)
+                    return response_auth('success', user.encode_auth_token(user.id), 200)
                 return response('failed', 'User does not exist or password is incorrect', 401)
             return response('failed', 'Missing or wrong email format or password is less than four characters', 401)
         return response('failed', 'Content-type must be json', 202)

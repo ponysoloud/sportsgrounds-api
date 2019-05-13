@@ -74,6 +74,5 @@ def response_auth(status, message, token, status_code):
     """
     return make_response(jsonify({
         'status': status,
-        'message': message,
         'auth_token': token.decode("utf-8")
     })), status_code
