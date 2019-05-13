@@ -63,7 +63,7 @@ def response(status, message, status_code):
     })), status_code
 
 
-def response_auth(status, message, token, status_code):
+def response_auth(status, token, status_code):
     """
     Make a Http response to send the auth token
     :param status: Status
