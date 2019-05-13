@@ -660,10 +660,10 @@ class Event(db.Model):
             'requiredAgeTo': self.participants_age_to,
             'groundId': self.ground_id,
             'owner': self.owner.json(),
-            'beginAt': self.begin_at.isoformat(),
-            'endAt': self.end_at.isoformat(),
-            'createdAt': self.create_at.isoformat(),
-            'modifiedAt': self.modified_at.isoformat()
+            'beginAt': self.begin_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
+            'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
+            'createdAt': self.create_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
+            'modifiedAt': self.modified_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
         }
 
         return {
@@ -983,5 +983,5 @@ class EventMessage(db.Model):
             'eventId': self.event_id,
             'sender': self.sender.json(),
             'text': self.text,
-            'createdAt': self.create_at.isoformat()
+            'createdAt': self.create_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
         }
