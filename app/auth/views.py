@@ -85,7 +85,6 @@ class LogOutUser(MethodView):
     """
     Class to log out a user
     """
-
     def post(self):
         """
         Try to logout a user using a token
