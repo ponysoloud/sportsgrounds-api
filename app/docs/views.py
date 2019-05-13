@@ -8,4 +8,5 @@ def index():
     Show an index template
     :return:
     """
+    print('view')
     return view('docs/index.html')
