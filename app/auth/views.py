@@ -74,9 +74,11 @@ class LoginUser(MethodView):
             password = post_data.get('password')
             if re.match(r"[^@]+@[^@]+\.[^@]+", email) and len(password) > 4:
                 user = User.query.filter_by(email=email).first()
+                if not user:
+                    return response('failed', 'User does not exist', 401)
                 if user and bcrypt.check_password_hash(user.password, password):
                     return response_auth('success', user.encode_auth_token(user.id), 200)
-                return response('failed', 'User does not exist or password is incorrect', 401)
+                return response('failed', 'Password is incorrect', 400)
             return response('failed', 'Missing or wrong email format or password is less than four characters', 401)
         return response('failed', 'Content-type must be json', 202)
 
