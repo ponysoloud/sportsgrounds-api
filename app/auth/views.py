@@ -128,7 +128,7 @@ def reset_password(current_user):
 @auth.route('/auth/refresh', methods=['POST'])
 @token_required
 def refresh_token(current_user):
-    return response_auth('success', user.encode_auth_token(user.id), 200)
+    return response_auth('success', current_user.encode_auth_token(current_user.id), 200)
 
 
 # Register classes as views
