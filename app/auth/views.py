@@ -12,10 +12,6 @@ auth = Blueprint('auth', __name__)
 
 
 class RegisterUser(MethodView):
-    """
-    View function to register a user via the api
-    """
-
     def post(self):
         """
         Register a user, generate their token and add them to the database
@@ -83,7 +79,7 @@ class LoginUser(MethodView):
         return response('failed', 'Content-type must be json', 202)
 
 
-class LogOutUser(MethodView):
+class LogoutUser(MethodView):
     """
     Class to log out a user
     """
@@ -129,10 +125,16 @@ def reset_password(current_user):
     return response('failed', 'Content type must be json', 400)
 
 
+@auth.route('/auth/refresh', methods=['POST'])
+@token_required
+def refresh_token(current_user):
+    return response_auth('success', user.encode_auth_token(user.id), 200)
+
+
 # Register classes as views
 registration_view = RegisterUser.as_view('register')
 login_view = LoginUser.as_view('login')
-logout_view = LogOutUser.as_view('logout')
+logout_view = LogoutUser.as_view('logout')
 
 # Add rules for the api Endpoints
 auth.add_url_rule('/auth/register', view_func=registration_view, methods=['POST'])

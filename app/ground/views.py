@@ -15,8 +15,7 @@ def record(state):
 @token_required
 def grounds(current_user):
     """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
+    Return all grounds on order to closing distance to user and limit them to 10.
     :param current_user:
     :return:
     """

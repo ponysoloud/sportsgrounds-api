@@ -106,7 +106,8 @@ def paginate_teammates(page, user):
         .filter(ta_team.id == te_team.id) \
         .filter(target.id != teammate.id) \
         .filter(target.id == user.id) \
-        .group_by(target.id, teammate.id)
+        .group_by(target.id, teammate.id) \
+        .order_by(func.count(teammate.id).desc())
 
     pagination = teammates_query \
         .paginate(page=page, per_page=app.config['USERS_PER_PAGE'], error_out=False)
@@ -118,6 +119,6 @@ def paginate_teammates(page, user):
     nex = None
     if pagination.has_next:
         nex = url_for('user.get_user_teammates', user_id=user.id, page=page+1, _external=True)
-            
+    
     items = list(map(lambda i: i[1], pagination.items))
     return items, nex, pagination, previous
