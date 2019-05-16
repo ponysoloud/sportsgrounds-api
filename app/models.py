@@ -254,7 +254,7 @@ class Ground(db.Model):
     modified_at = db.Column(db.DateTime, nullable=False)
 
     gactivities = db.relationship('GroundActivity', back_populates='ground', collection_class=set, cascade="all, delete-orphan")
-    events = db.relationship('Event', back_populates='ground')
+    events = db.relationship('Event', back_populates='ground', lazy='dynamic')
 
     activities = association_proxy('gactivities', 'activity')
 
@@ -367,11 +367,21 @@ class Ground(db.Model):
         """
         return {
             'id': self.id,
+            'status': self.status.value if self.status else None,
             'location': {
                 'latitude': self.latitude,
                 'longitude': self.longitude
             }
         }
+
+    @property
+    def status(self):
+        event = self.events.order_by(Event.status).first()
+
+        if event:
+            return event.status
+        else:
+            return None
 
     @staticmethod
     def get_by_id(id):
@@ -532,8 +542,8 @@ class EventType(Enum):
             return 'Турнир'
     
 class EventStatus(Enum):
-    scheduled = 1
-    processing = 2
+    processing = 1
+    scheduled = 2
     ended = 3
     canceled = 4
 
@@ -648,27 +658,23 @@ class Event(db.Model):
         Json representation of the model
         :return:
         """
-        event_json = {
+        return {
             'id': self.id,
             'title': self.title,
             'description': self.description,
             'activity': self.activity.value,
             'status': self.status.value,
+            'type': self.type.value,
             str(self.type.name): self.subevent.json(),
             'requiredLevel': self.participants_level.value,
             'requiredAgeFrom': self.participants_age_from,
             'requiredAgeTo': self.participants_age_to,
             'groundId': self.ground_id,
-            'owner': self.owner.json(),
+            'ownerId': self.owner.id,
             'beginAt': self.begin_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'createdAt': self.create_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'modifiedAt': self.modified_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
-        }
-
-        return {
-            'eventType': self.type.value,
-            'event': event_json
         }
 
     @hybrid_property
@@ -688,11 +694,11 @@ class Event(db.Model):
     def status(cls):
         return case(
             [
-                (cls.canceled == True, EventStatus.canceled.name),
-                (and_(cls.canceled == False, utcnow() < cls.begin_at), EventStatus.scheduled.name),
-                (and_(cls.canceled == False, utcnow() <= cls.end_at, utcnow() >= cls.begin_at), EventStatus.processing.name),
+                (cls.canceled == True, EventStatus.canceled.value),
+                (and_(cls.canceled == False, utcnow() < cls.begin_at), EventStatus.scheduled.value),
+                (and_(cls.canceled == False, utcnow() <= cls.end_at, utcnow() >= cls.begin_at), EventStatus.processing.value),
             ],
-            else_=EventStatus.ended.name)
+            else_=EventStatus.ended.value)
 
     @property
     def subevent(self):
@@ -749,6 +755,15 @@ class Event(db.Model):
         return Event.query.filter_by(id=id).first()
 
     @staticmethod
+    def get_by_ground_id(ground_id):
+        """
+        Filter a user by Id.
+        :param user_id:
+        :return: User or None
+        """
+        return Event.query.filter_by(ground_id=ground_id).first()
+
+    @staticmethod
     def datetime_interval_free(begin, end, ground):
         """
         Filter a user by Id.
@@ -781,7 +796,9 @@ class TrainingEvent(db.Model):
         Json representation of the model
         :return:
         """
-        return self.team.json()
+        return {
+            'team': self.team.json()
+        }
 
 class MatchEvent(db.Model):
     __tablename__ = 'matchevents'

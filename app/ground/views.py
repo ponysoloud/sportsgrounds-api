@@ -36,7 +36,7 @@ def grounds(current_user):
 @token_required
 def grounds_geography(current_user):
     """
-    Create a Ground from the sent json data.
+    Get grounds by json geodata.
     :param current_user: Current User
     :return:
     """

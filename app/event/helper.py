@@ -170,7 +170,7 @@ def paginate_events(page, ground_id, status_value, type_value, activity_value, o
         events_query = training_events_query.union(match_events_query).union(tourney_events_query)
 
     if status:
-        events_query = events_query.filter(Event.status==status.name)
+        events_query = events_query.filter(Event.status==status.value)
 
         if status is EventStatus.scheduled or status is EventStatus.processing:
             events_query = events_query.order_by(Event.begin_at)
