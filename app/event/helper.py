@@ -40,7 +40,7 @@ def response_for_created_event(event, status_code):
     """
     return make_response(jsonify({
         'status': 'success',
-        'event': event.json()
+        'event': event
     })), status_code
 
 def response_for_created_message(message, status_code):

@@ -655,12 +655,12 @@ class Event(db.Model):
         db.session.delete(self)
         db.session.commit()
 
-    def json(self):
+    def json(self, user=None):
         """
         Json representation of the model
         :return:
         """
-        return {
+        json = {
             'id': self.id,
             'title': self.title,
             'description': self.description,
@@ -676,6 +676,15 @@ class Event(db.Model):
             'beginAt': self.begin_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
         }
+
+        if user:
+            participated = False
+            for t in self.teams:
+                if user in t.participants:
+                    participated = True
+            json['participated'] = participated
+
+        return json
 
     def short_json(self):
         """

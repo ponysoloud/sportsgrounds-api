@@ -193,7 +193,7 @@ def create_event(current_user):
                 event.ground = ground
                 event.save()
 
-        return response_for_created_event(event, 201)
+        return response_for_created_event(event.json(user), 201)
     return response('failed', 'Content-type must be json', 202)
 
 @event.route('/events/<event_id>', methods=['GET'])
@@ -212,7 +212,7 @@ def get_event(current_user, event_id):
     else:
         event = Event.get_by_id(event_id)
         if event:
-            return response_for_event(event.json())
+            return response_for_event(event.json(current_user))
         return response('failed', "Event not found", 404)
 
 
@@ -261,7 +261,7 @@ def edit_event(current_user, event_id):
 
         event = User.get_by_id(current_user.id).events.filter_by(id=event_id).first()
         if not event:
-            return response('failed', 'The Event with Id ' + event_id + ' does not exist', 404)
+            return response('failed', 'The Event with Id ' + event_id + ' does not exist for user', 404)
 
         if title or description:
             event.update(title, description)
@@ -270,7 +270,7 @@ def edit_event(current_user, event_id):
             if event.type is EventType.tourney:
                 event.subevent.update(teams_count)
 
-        return response_for_created_event(event, 201)
+        return response_for_created_event(event.json(current_user), 201)
     return response('failed', 'Content-type must be json', 202)
 
 
@@ -348,7 +348,7 @@ def join_to_event(current_user, event_id):
     team.participants.append(user)
     team.update()
 
-    return response_for_created_event(event, 201)
+    return response_for_created_event(event.json(current_user), 201)
 
 
 @event.route('/events/<event_id>/actions/leave', methods=['POST'])
@@ -382,7 +382,7 @@ def leave_from_event(current_user, event_id):
     team.participants.remove(user)
     team.update()
 
-    return response_for_created_event(event, 201)
+    return response_for_created_event(event.json(current_user), 201)
 
 
 @event.route('/events/<event_id>/messages', methods=['GET'])
