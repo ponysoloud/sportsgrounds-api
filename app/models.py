@@ -88,6 +88,7 @@ class User(db.Model):
             'id': self.id,
             'name': self.name,
             'surname': self.surname,
+            'birthday': self.birthday.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'image_url': self.image_url,
             'rating': len(self.rated_me_users)
         }
@@ -103,6 +104,7 @@ class User(db.Model):
             'email': self.email,
             'name': self.name,
             'surname': self.surname,
+            'birthday': self.birthday.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'image_url': self.image_url,
             'rating': len(self.rated_me_users),
             'rated': self.rated_by_user(self)
