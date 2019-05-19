@@ -39,7 +39,7 @@ def response_for_user_personal(user):
     """
     return make_response(jsonify({
         'status': 'success',
-        'user': user.personaljson()
+        'user': user.personal_json()
     }))
 
 def response_for_rated_user(user, by_user, status_code):

@@ -63,7 +63,7 @@ def get_event_json_list(events):
     """
     json_list = []
     for event in events:
-        json_list.append(event.json())
+        json_list.append(event.short_json())
     return json_list
 
 def get_message_json_list(messages):

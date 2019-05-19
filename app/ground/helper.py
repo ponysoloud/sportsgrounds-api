@@ -70,7 +70,7 @@ def get_ground_geojson_list(grounds):
     """
     json_list = []
     for ground in grounds:
-        json_list.append(ground.geojson())
+        json_list.append(ground.geo_json())
     return json_list
     
 

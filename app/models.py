@@ -98,7 +98,7 @@ class User(db.Model):
 
         return json
 
-    def personaljson(self):
+    def personal_json(self):
         return {
             'id': self.id,
             'email': self.email,
@@ -362,7 +362,7 @@ class Ground(db.Model):
 
         return json
 
-    def geojson(self):
+    def geo_json(self):
         """
         Json representation of the ground model.
         :return:
@@ -671,12 +671,31 @@ class Event(db.Model):
             'requiredLevel': self.participants_level.value,
             'requiredAgeFrom': self.participants_age_from,
             'requiredAgeTo': self.participants_age_to,
-            'groundId': self.ground_id,
-            'ownerId': self.owner.id,
+            'ground': self.ground.json(),
+            'owner': self.owner.json(),
             'beginAt': self.begin_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
-            'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
-            'createdAt': self.create_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
-            'modifiedAt': self.modified_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
+            'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
+        }
+
+    def short_json(self):
+        """
+        Json representation of the model
+        :return:
+        """
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'activity': self.activity.value,
+            'status': self.status.value,
+            'type': self.type.value,
+            'requiredLevel': self.participants_level.value,
+            'requiredAgeFrom': self.participants_age_from,
+            'requiredAgeTo': self.participants_age_to,
+            'groundId': self.ground_id,
+            'ownerId': self.owner_id,
+            'beginAt': self.begin_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
+            'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
         }
 
     @hybrid_property
