@@ -626,6 +626,29 @@ class Event(db.Model):
         self.create_at = datetime.datetime.utcnow()
         self.modified_at = datetime.datetime.utcnow()
 
+    @hybrid_property
+    def status(self):
+        today = datetime.datetime.utcnow()
+
+        if self.canceled:
+            return EventStatus.canceled
+        elif today < self.begin_at:
+            return EventStatus.scheduled
+        elif today <= self.end_at:
+            return EventStatus.processing
+        else:
+            return EventStatus.ended
+
+    @status.expression
+    def status(cls):
+        return case(
+            [
+                (cls.canceled == True, EventStatus.canceled.value),
+                (and_(cls.canceled == False, utcnow() < cls.begin_at), EventStatus.scheduled.value),
+                (and_(cls.canceled == False, utcnow() <= cls.end_at, utcnow() >= cls.begin_at), EventStatus.processing.value),
+            ],
+            else_=EventStatus.ended.value)
+
     def save(self):
         """
         Persist Item into the database
@@ -706,29 +729,6 @@ class Event(db.Model):
             'beginAt': self.begin_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat(),
             'endAt': self.end_at.replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
         }
-
-    @hybrid_property
-    def status(self):
-        today = datetime.datetime.utcnow()
-
-        if self.canceled:
-            return EventStatus.canceled
-        elif today < self.begin_at:
-            return EventStatus.scheduled
-        elif today <= self.end_at:
-            return EventStatus.processing
-        else:
-            return EventStatus.ended
-
-    @status.expression
-    def status(cls):
-        return case(
-            [
-                (cls.canceled == True, EventStatus.canceled.value),
-                (and_(cls.canceled == False, utcnow() < cls.begin_at), EventStatus.scheduled.value),
-                (and_(cls.canceled == False, utcnow() <= cls.end_at, utcnow() >= cls.begin_at), EventStatus.processing.value),
-            ],
-            else_=EventStatus.ended.value)
 
     @property
     def subevent(self):

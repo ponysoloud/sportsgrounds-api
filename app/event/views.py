@@ -382,7 +382,7 @@ def leave_from_event(current_user, event_id):
     team.participants.remove(user)
     team.update()
 
-    return response_for_created_event(event.json(current_user), 201)
+    return response_for_created_event(event.json(user), 201)
 
 
 @event.route('/events/<event_id>/messages', methods=['GET'])
@@ -394,7 +394,8 @@ def get_event_messages(current_user, event_id):
     :param bucket_id:
     :return:
     """
-    page = request.args.get('page', 1, type=int)
+    skip = request.args.get('skip', 0, type=int)
+    count = request.args.get('count', None, type=int)
 
     try:
         int(event_id)
@@ -406,11 +407,8 @@ def get_event_messages(current_user, event_id):
     if not event:
         abort(404)
 
-    items, nex, pagination, previous = paginate_messages(page, event, user)
-
-    if items:
-        return response_with_pagination_messages(get_message_json_list(items), previous, nex, pagination.total)
-    return response_with_pagination_messages([], previous, nex, 0)
+    messages, nex, previous, skip, total = paginate_messages(skip, count, event, user)
+    return response_with_pagination_messages(get_message_json_list(messages), previous, nex, skip, total)
 
 
 @event.route('/events/<event_id>/messages', methods=['POST'])

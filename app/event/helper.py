@@ -124,7 +124,7 @@ def response_with_pagination_events(events, previous, nex, count):
         'events': events
     })), 200
 
-def response_with_pagination_messages(messages, previous, nex, count):
+def response_with_pagination_messages(messages, previous, nex, skip, count):
     """
     Make a http response for BucketList get requests.
     :param count: Pagination Total
@@ -138,6 +138,7 @@ def response_with_pagination_messages(messages, previous, nex, count):
         'previous': previous,
         'next': nex,
         'count': count,
+        'skip': skip,
         'messages': messages
     })), 200
 
@@ -204,7 +205,7 @@ def paginate_events(page, ground_id, status_value, type_value, activity_value, o
 
     return items, nex, pagination, previous
 
-def paginate_messages(page, event, user_id):
+def paginate_messages(skip, count, event, user_id):
     """
     Get a user by Id, then get hold of their buckets and also paginate the results.
     There is also an option to search for a bucket name if the query param is set.
@@ -216,16 +217,19 @@ def paginate_messages(page, event, user_id):
     :return: Pagination next url, previous url and the user buckets.
     """
 
-    pagination = event.messages \
-        .paginate(page=page, per_page=app.config['EVENTS_PER_PAGE'], error_out=False)
+    limit = count
+    if not limit:
+        limit = app.config['MESSAGES_PER_PAGE']
+
+    messages = event.messages.offset(skip).limit(limit).all()
+    total_count = event.messages.count()
 
     previous = None
-    if pagination.has_prev:
-        previous = url_for('event.get_event_messages', event_id=event.id, page=page-1, _external=True)
+    if skip > 0:
+        previous = url_for('event.get_event_messages', event_id=event.id, count=skip, skip=0, _external=True)
 
     nex = None
-    if pagination.has_next:
-        nex = url_for('event.get_event_messages', event_id=event.id, page=page+1, _external=True)
+    if len(messages) + skip < total_count:
+        nex = url_for('event.get_event_messages', event_id=event.id, count=limit, skip=skip + len(messages), _external=True)
             
-    items = pagination.items
-    return items, nex, pagination, previous
+    return messages, nex, previous, skip, len(messages)
