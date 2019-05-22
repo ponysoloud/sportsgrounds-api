@@ -953,7 +953,7 @@ class Team(db.Model):
         return {
             'id': self.id, 
             'maxParticipants': self.max_participants,
-            'participants': list(map(lambda p: p.json(), self.participants))[::-1]
+            'participants': list(map(lambda p: p.json(), self.participants))
         }
 
     @property
