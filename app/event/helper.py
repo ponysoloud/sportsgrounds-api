@@ -170,15 +170,6 @@ def paginate_events(page, ground_id, status_value, type_value, activity_value, o
 
         events_query = training_events_query.union(match_events_query).union(tourney_events_query)
 
-    if status:
-        events_query = events_query.filter(Event.status==status.value)
-
-        if status is EventStatus.scheduled or status is EventStatus.processing:
-            events_query = events_query.order_by(Event.begin_at)
-
-        if status is EventStatus.ended:
-            events_query = events_query.order_by(Event.end_at.desc())
-
     if ground:
         events_query = events_query.filter_by(ground_id=ground.id)
 
@@ -190,6 +181,16 @@ def paginate_events(page, ground_id, status_value, type_value, activity_value, o
 
     if owner:
         events_query = events_query.filter_by(owner=owner)
+
+    if status:
+        events_query = events_query.filter(Event.status==status.value)
+
+        if status is EventStatus.scheduled or status is EventStatus.processing:
+            events_query = events_query.order_by(Event.begin_at)
+        elif status is EventStatus.ended:
+            events_query = events_query.order_by(Event.end_at.desc())
+    else:
+        events_query = events_query.order_by(Event.status)
 
     pagination = events_query.paginate(page=page, per_page=app.config['EVENTS_PER_PAGE'], error_out=False)
 
