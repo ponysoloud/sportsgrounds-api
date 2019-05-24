@@ -1,8 +1,8 @@
 from werkzeug.utils import secure_filename
 from flask import Blueprint, request, abort, url_for, redirect
 from app.auth.helper import token_required
-from app.user.helper import response, response_for_user, response_for_user_personal, response_for_rated_user, response_with_pagination_teammates, \
-    get_user_json_list, paginate_teammates
+from app.user.helper import response, response_for_user, response_for_user_personal, response_for_rated_user, response_for_user_teammates, \
+    get_user_json_list, get_teammates
 from app.uploads.helper import upload_file, allowed_file, secure_filename
 from app.models import User
 
@@ -91,14 +91,14 @@ def get_user_teammates(current_user, user_id):
         return response('failed', 'Please provide a valid User Id', 400)
     else:
         user = User.get_by_id(user_id)
-        page = request.args.get('page', 1, type=int)
+        count = request.args.get('count', 10, type=int)
 
         if user:
-            items, nex, pagination, previous = paginate_teammates(page, user)
+            items = get_teammates(user, count)
 
             if items:
-                return response_with_pagination_teammates(get_user_json_list(items), previous, nex, pagination.total)
-            return response_with_pagination_teammates([], previous, nex, 0)
+                return response_for_user_teammates(get_user_json_list(items))
+            return response_for_user_teammates([])
         return response('failed', "User not found", 404)
 
 

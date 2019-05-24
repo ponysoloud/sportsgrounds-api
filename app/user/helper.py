@@ -20,6 +20,7 @@ def response(status, message, code):
         'message': message
     })), code
 
+
 def response_for_user(user, other_user=None):
     """
     Return the response for when a single bucket when requested by the user.
@@ -31,6 +32,7 @@ def response_for_user(user, other_user=None):
         'user': user.json(other_user)
     }))
 
+
 def response_for_user_personal(user):
     """
     Return the response for when a single bucket when requested by the user.
@@ -41,6 +43,7 @@ def response_for_user_personal(user):
         'status': 'success',
         'user': user.personal_json()
     }))
+
 
 def response_for_rated_user(user, by_user, status_code):
     """
@@ -54,6 +57,7 @@ def response_for_rated_user(user, by_user, status_code):
         'event': user.json(by_user)
     })), status_code
 
+
 def get_user_json_list(users):
     """
     Make json objects of the grounds and add them to a list.
@@ -66,7 +70,7 @@ def get_user_json_list(users):
     return json_list
 
 
-def response_with_pagination_teammates(users, previous, nex, count):
+def response_for_user_teammates(users):
     """
     Make a http response for BucketList get requests.
     :param count: Pagination Total
@@ -77,14 +81,11 @@ def response_with_pagination_teammates(users, previous, nex, count):
     """
     return make_response(jsonify({
         'status': 'success',
-        'previous': previous,
-        'next': nex,
-        'count': count,
         'users': users
     })), 200
 
 
-def paginate_teammates(page, user):
+def get_teammates(user, count):
     """
     Get a user by Id, then get hold of their buckets and also paginate the results.
     There is also an option to search for a bucket name if the query param is set.
@@ -107,18 +108,8 @@ def paginate_teammates(page, user):
         .filter(target.id != teammate.id) \
         .filter(target.id == user.id) \
         .group_by(target.id, teammate.id) \
-        .order_by(func.count(teammate.id).desc())
+        .order_by(func.count(teammate.id).desc()) \
+        .limit(count)
 
-    pagination = teammates_query \
-        .paginate(page=page, per_page=app.config['USERS_PER_PAGE'], error_out=False)
-
-    previous = None
-    if pagination.has_prev:
-        previous = url_for('user.get_user_teammates', user_id=user.id, page=page-1, _external=True)
-
-    nex = None
-    if pagination.has_next:
-        nex = url_for('user.get_user_teammates', user_id=user.id, page=page+1, _external=True)
-    
-    items = list(map(lambda i: i[1], pagination.items))
-    return items, nex, pagination, previous
+    items = list(map(lambda i: i[1], teammates_query.all()))
+    return items
