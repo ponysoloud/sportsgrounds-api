@@ -79,8 +79,9 @@ class User(db.Model):
         db.session.commit()
         return self.encode_auth_token(self.id)
 
-    def update(self, image_url):
-        self.image_url = image_url
+    def update(self, image_url=None):
+        if image_url:
+            self.image_url = image_url
         db.session.commit()
 
     def json(self, other_user=None):
