@@ -117,6 +117,7 @@ class User(db.Model):
         :return:
         """
         try:
+
             payload = {
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=app.config.get('AUTH_TOKEN_EXPIRY_DAYS'),
                                                                        seconds=app.config.get('AUTH_TOKEN_EXPIRY_SECONDS')),
@@ -128,6 +129,7 @@ class User(db.Model):
                 app.config['SECRET_KEY'],
                 algorithm='HS256'
             )
+            
         except Exception as e:
             return e
 

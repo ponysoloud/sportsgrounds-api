@@ -54,7 +54,7 @@ def response_for_rated_user(user, by_user, status_code):
     """
     return make_response(jsonify({
         'status': 'success',
-        'event': user.json(by_user)
+        'user': user.json(by_user)
     })), status_code
 
 
