@@ -33,7 +33,9 @@ def edit_user(current_user):
     :param current_user:
     :return:
     """
+    print("------------ LOADING IMAGE")
     image = request.files.get('image', None)
+    print("------------ LOADING IMAGE NAME: " + image.filename)
 
     if not image:
         return response('failed', 'Missing image attribute', 404)
