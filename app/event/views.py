@@ -16,12 +16,6 @@ event = Blueprint('event', __name__)
 @event.route('/events', methods=['GET'])
 @token_required
 def events(current_user):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
     page = request.args.get('page', 1, type=int)
 
     ground = request.args.get('groundId', None, type=int)
@@ -41,11 +35,6 @@ def events(current_user):
 @event.route('/events', methods=['POST'])
 @token_required
 def create_event(current_user):
-    """
-    Create a Bucket from the sent json data.
-    :param current_user: Current User
-    :return:
-    """
     if request.content_type == 'application/json':
         user = User.get_by_id(current_user.id)
 
@@ -199,12 +188,6 @@ def create_event(current_user):
 @event.route('/events/<event_id>', methods=['GET'])
 @token_required
 def get_event(current_user, event_id):
-    """
-    Return a user ground with the supplied user Id.
-    :param current_user: User
-    :param ground_id: ground Id
-    :return:
-    """
     try:
         int(event_id)
     except ValueError:
@@ -263,6 +246,12 @@ def edit_event(current_user, event_id):
         if not event:
             return response('failed', 'The Event with Id ' + event_id + ' does not exist for user', 404)
 
+        if event == EventStatus.canceled:
+            return response('failed', 'Event was canceled', 400)
+
+        if event == EventStatus.ended:
+            return response('failed', 'Event was ended', 400)
+
         if title or description:
             event.update(title, description)
             
@@ -277,12 +266,6 @@ def edit_event(current_user, event_id):
 @event.route('/events/<event_id>', methods=['DELETE'])
 @token_required
 def delete_event(current_user, event_id):
-    """
-    Deleting a User Bucket from the database if it exists.
-    :param current_user:
-    :param bucket_id:
-    :return:
-    """
     try:
         int(event_id)
     except ValueError:
@@ -290,8 +273,9 @@ def delete_event(current_user, event_id):
     event = User.get_by_id(current_user.id).events.filter_by(id=event_id).first()
     if not event:
         abort(404)
-    event.delete()
-    return response('success', 'Event successfully deleted', 200)
+    event.cancel()
+    return response_for_created_event(event.json(current_user), 201)
+    #return response('success', 'Event successfully canceled', 200)
 
 
 @event.route('/events/<event_id>/actions/join', methods=['POST'])
@@ -314,6 +298,12 @@ def join_to_event(current_user, event_id):
     event = Event.get_by_id(event_id)
     if not event:
         abort(404)
+
+    if event == EventStatus.canceled:
+        return response('failed', 'Event was canceled', 400)
+
+    if event == EventStatus.ended:
+        return response('failed', 'Event was ended', 400)
     
     if team_id:
         team = Team.get_by_id(team_id)
@@ -369,6 +359,12 @@ def leave_from_event(current_user, event_id):
     event = Event.get_by_id(event_id)
     if not event:
         abort(404)
+
+    if event == EventStatus.canceled:
+        return response('failed', 'Event was canceled', 400)
+
+    if event == EventStatus.ended:
+        return response('failed', 'Event was ended', 400)
 
     team = None
 

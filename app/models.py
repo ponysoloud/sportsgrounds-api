@@ -673,6 +673,16 @@ class Event(db.Model):
             self.description = description
         db.session.commit()
 
+    def cancel(self):
+        """
+        Update the records in the item
+        :param name: Name
+        :param description: Description
+        :return:
+        """
+        self.canceled = True
+        db.session.commit()
+
     def delete(self):
         """
         Delete an item
@@ -803,7 +813,7 @@ class Event(db.Model):
         :param user_id:
         :return: User or None
         """
-        return len(Event.query.filter(or_(and_(Event.begin_at >= begin, Event.begin_at <= end), and_(Event.end_at > begin, Event.end_at < end))).filter_by(ground_id=ground.id).all())==0
+        return len(Event.query.filter(and_(or_(and_(Event.begin_at >= begin, Event.begin_at <= end), and_(Event.end_at > begin, Event.end_at < end)), Event.status != EventStatus.canceled.value)).filter_by(ground_id=ground.id).all())==0
 
 class utcnow(expression.FunctionElement):
     type = db.DateTime()
