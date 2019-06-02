@@ -2,10 +2,11 @@ import os
 from hashlib import md5
 from base64 import decodebytes
 from flask import make_response, jsonify, url_for
-from app import app, db
+from app import app, db, s3
 from app.models import User
 
 ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg'])
+BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
 
 def response(status, message, code):
     """
@@ -41,10 +42,18 @@ def secure_filename(user, filename):
     return secure_filename
 
 def upload_file(filename, file):
-    files_directory = app.config['UPLOAD_FOLDER']
-    filepath = os.path.join(files_directory, filename)
+    try:
+        s3.upload_fileobj(
+            file,
+            BUCKET_NAME,
+            filename,
+            ExtraArgs={
+                "ACL": 'public-read',
+                "ContentType": file.content_type
+            }
+        )
+    except Exception as e:
+        raise ValueError(e)
 
-    file.save(filepath)
-
-    file_url = os.path.join('/uploads', filename)
+    file_url = 'https://%s.s3.amazonaws.com/%s' % (BUCKET_NAME, filename)
     return file_url

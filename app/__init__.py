@@ -1,4 +1,5 @@
 import os
+import boto3
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
@@ -25,6 +26,13 @@ db = SQLAlchemy(app)
 
 # Initialize SocketIO
 sockets = SocketIO(app)
+
+# Initialize S3 Storage
+s3 = boto3.client(
+   "s3",
+   aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+   aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+)
 
 # Initialize Sheduler
 app_sheduler = BackgroundScheduler(timezone='utc')
