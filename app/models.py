@@ -808,12 +808,12 @@ class Event(db.Model):
 
     @staticmethod
     def datetime_interval_free(begin, end, ground):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
-        return len(Event.query.filter(and_(or_(and_(Event.begin_at >= begin, Event.begin_at <= end), and_(Event.end_at > begin, Event.end_at < end)), Event.status != EventStatus.canceled.value)).filter_by(ground_id=ground.id).all())==0
+        return len(Event.query.filter_by(ground_id=ground.id) \
+            .filter(and_(Event.begin_at >= begin, Event.begin_at <= end)) \
+            .filtet(and_(Event.end_at > begin, Event.end_at < end)) \
+            .filter(and_(begin >= Event.begin_at, end < Event.end_at)) \
+            .filter(Event.status != EventStatus.canceled.value) \
+            .all())==0
 
 class utcnow(expression.FunctionElement):
     type = db.DateTime()
