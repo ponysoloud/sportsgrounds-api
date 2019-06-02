@@ -366,6 +366,10 @@ def leave_from_event(current_user, event_id):
     if event == EventStatus.ended:
         return response('failed', 'Event was ended', 400)
 
+    if event.owner.id == user.id:
+        event.cancel()
+        return response_for_created_event(event.json(user), 201)
+
     team = None
 
     for t in event.teams:
