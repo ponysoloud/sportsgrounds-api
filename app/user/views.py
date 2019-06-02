@@ -50,7 +50,8 @@ def edit_user(current_user):
         return response('failed', 'Wrong image format', 400)
 
     user.update(image_url)
-    return redirect(url_for('uploads.download_file', filename=image_name))
+    return response_for_user(user, User.get_by_id(current_user.id))
+    #return redirect(url_for('uploads.download_file', filename=image_name))
 
 
 @user.route('/users/<user_id>', methods=['GET'])
