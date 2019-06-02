@@ -35,13 +35,14 @@ def edit_user(current_user):
     """
     print("------------ LOADING IMAGE")
     image = request.files.get('image', None)
-    print("------------ LOADING IMAGE NAME: " + image.filename)
 
     if not image:
         return response('failed', 'Missing image attribute', 404)
 
     if not allowed_file(image.filename):
         return response('failed', 'Wrong image format', 400)
+
+    print("------------ LOADING IMAGE NAME: " + image.filename)
     
     user = User.get_by_id(current_user.id)
 

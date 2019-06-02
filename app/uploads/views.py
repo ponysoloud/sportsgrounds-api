@@ -7,7 +7,7 @@ from app.uploads.helper import response
 # Initialize blueprint
 uploads = Blueprint('uploads', __name__)
 
-RELATIVE_UPLOAD_FOLDER = 'uploads/files'
+RELATIVE_UPLOAD_FOLDER = 'tmp/files'
 
 
 @uploads.route('/uploads/<filename>', methods=['GET'])
