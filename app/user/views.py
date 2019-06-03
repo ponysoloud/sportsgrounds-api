@@ -39,7 +39,7 @@ def edit_user(current_user):
     if not allowed_file(image_name):
         return response('failed', 'Wrong image format', 400)
 
-    print("------------ LOADING: " + image_data)
+    print("------------ LOADING")
     
     user = User.get_by_id(current_user.id)
 

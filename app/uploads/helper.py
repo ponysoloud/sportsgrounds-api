@@ -44,8 +44,12 @@ def secure_filename(user, filename):
 def upload_file(filename, filedata):
     bin_data = b64decode(filedata)
 
-    object = s3.Object(BUCKET_NAME, filename)
-    object.put(Body=bin_data)
+    try:
+        object = s3.Object(BUCKET_NAME, filename)
+        object.put(Body=bin_data)
+    except Exception as e:
+        print(e)
+        raise ValueError(e)
 
     # try:
     #     object = s3.Object(BUCKET_NAME, filename)
