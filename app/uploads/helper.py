@@ -47,27 +47,7 @@ def upload_file(filename, filedata):
     try:
         s3.put_object(Body=bin_data, Bucket=BUCKET_NAME, Key=filename)
     except Exception as e:
-        print(e)
         raise ValueError(e)
-
-    # try:
-    #     object = s3.Object(BUCKET_NAME, filename)
-    #     object.put(Body=bin_data)
-    # except Exception as e:
-    #     raise ValueError(e)
-
-    # try:
-    #     s3.upload_fileobj(
-    #         file,
-    #         BUCKET_NAME,
-    #         filename,
-    #         ExtraArgs={
-    #             "ACL": 'public-read',
-    #             "ContentType": file.content_type
-    #         }
-    #     )
-    # except Exception as e:
-    #     raise ValueError(e)
 
     file_url = 'https://%s.s3.amazonaws.com/%s' % (BUCKET_NAME, filename)
     return file_url
