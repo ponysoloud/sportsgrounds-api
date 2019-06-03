@@ -27,22 +27,25 @@ def get_current_user(current_user):
 @user.route('/user', methods=['PUT'])
 @token_required
 def edit_user(current_user):
-    print("------------ LOADING IMAGE")
-    image = request.files.get('image', None)
+    image_name = request.json['imageName']
+    image_data = request.json['image'] 
 
-    if not image:
+    if not image_name:
+        return response('failed', 'Missing imageName attribute', 404)
+
+    if not image_data:
         return response('failed', 'Missing image attribute', 404)
 
-    if not allowed_file(image.filename):
+    if not allowed_file(image_name):
         return response('failed', 'Wrong image format', 400)
 
-    print("------------ LOADING IMAGE NAME: " + image.filename)
+    print("------------ LOADING: " + image_data)
     
     user = User.get_by_id(current_user.id)
 
     try:
-        image_name = secure_filename(user, image.filename)
-        image_url = upload_file(image_name, image)
+        secure_name = secure_filename(user, image_name)
+        image_url = upload_file(secure_name, image_data)
     except ValueError:
         return response('failed', 'Wrong image format', 400)
 

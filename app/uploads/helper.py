@@ -1,6 +1,6 @@
 import os
 from hashlib import md5
-from base64 import decodebytes
+from base64 import decodebytes, b64decode
 from flask import make_response, jsonify, url_for
 from app import app, db, s3
 from app.models import User
@@ -41,19 +41,27 @@ def secure_filename(user, filename):
 
     return secure_filename
 
-def upload_file(filename, file):
+def upload_file(filename, filedata):
+    bin_data = b64decode(filedata)
+
     try:
-        s3.upload_fileobj(
-            file,
-            BUCKET_NAME,
-            filename,
-            ExtraArgs={
-                "ACL": 'public-read',
-                "ContentType": file.content_type
-            }
-        )
+        object = s3.Object(BUCKET_NAME, filename)
+        object.put(Body=bin_data)
     except Exception as e:
         raise ValueError(e)
+
+    # try:
+    #     s3.upload_fileobj(
+    #         file,
+    #         BUCKET_NAME,
+    #         filename,
+    #         ExtraArgs={
+    #             "ACL": 'public-read',
+    #             "ContentType": file.content_type
+    #         }
+    #     )
+    # except Exception as e:
+    #     raise ValueError(e)
 
     file_url = 'https://%s.s3.amazonaws.com/%s' % (BUCKET_NAME, filename)
     return file_url
