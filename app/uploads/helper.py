@@ -45,8 +45,7 @@ def upload_file(filename, filedata):
     bin_data = b64decode(filedata)
 
     try:
-        object = s3.Object(BUCKET_NAME, filename)
-        object.put(Body=bin_data)
+        s3.put_object(Body=bin_data, Bucket=BUCKET_NAME, Key=filename)
     except Exception as e:
         print(e)
         raise ValueError(e)
