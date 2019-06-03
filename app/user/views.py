@@ -27,12 +27,6 @@ def get_current_user(current_user):
 @user.route('/user', methods=['PUT'])
 @token_required
 def edit_user(current_user):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
     print("------------ LOADING IMAGE")
     image = request.files.get('image', None)
 
@@ -54,7 +48,6 @@ def edit_user(current_user):
 
     user.update(image_url)
     return response_for_user(user, User.get_by_id(current_user.id))
-    #return redirect(url_for('uploads.download_file', filename=image_name))
 
 
 @user.route('/users/<user_id>', methods=['GET'])
