@@ -2,7 +2,7 @@ import os
 
 class SourceConfig(object):
     GROUNDS_SOURCE_BASE_URL = 'https://apidata.mos.ru'
-    GROUNDS_SOURCE_API_KEY = os.getenv('SOURCE_SPORTGROUNDS_DATASET_API_KEY', '5515b72304112feb0df9c25504b0d1b0')
+    GROUNDS_SOURCE_API_KEY = os.getenv('SOURCE_SPORTGROUNDS_DATASET_API_KEY')
     GROUNDS_SOURCE_MAX_COUNT_ROWS = 500
     GROUNDS_SOURCE_DATASETS_IDS = {
         'football_pitches_dataset': 886,

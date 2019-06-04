@@ -10,12 +10,6 @@ team = Blueprint('team', __name__)
 @team.route('/teams', methods=['GET'])
 @token_required
 def teams(current_user):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty activities object if user has no buckets
-    :param current_user:
-    :return:
-    """
     user = User.get_by_id(current_user.id)
     page = request.args.get('page', 1, type=int)
 
@@ -29,12 +23,6 @@ def teams(current_user):
 @team.route('/teams/<team_id>', methods=['GET'])
 @token_required
 def get_team(current_user, team_id):
-    """
-    Return an activity object for the supplied activity id.
-    :param current_user: User
-    :param activity_id: Activity Id
-    :return:
-    """
     try:
         int(team_id)
     except ValueError:

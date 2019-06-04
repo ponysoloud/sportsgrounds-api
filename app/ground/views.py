@@ -36,7 +36,7 @@ def grounds(current_user):
 @token_required
 def grounds_geography(current_user):
     """
-    Get grounds by json geodata.
+    Get grounds by geography filters.
     :param current_user: Current User
     :return:
     """

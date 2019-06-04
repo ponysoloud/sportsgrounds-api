@@ -300,19 +300,10 @@ class Ground(db.Model):
         return gc_distance(lat, lng, cls.latitude, cls.longitude, math=func)
 
     def save(self):
-        """
-        Persist a ground in the database
-        :return:
-        """
         db.session.add(self)
         db.session.commit()
 
     def update(self, name, district, address, website, hasMusic, hasWifi, hasToilet, hasEatery, hasDressingRoom, hasLighting, paid):
-        """
-        Update the name of the Ground
-        :param name:
-        :return:
-        """
         self.name = name
         self.district = district
         self.address = address
@@ -327,18 +318,10 @@ class Ground(db.Model):
         db.session.commit()
 
     def delete(self):
-        """
-        Delete a Bucket from the database
-        :return:
-        """
         db.session.delete(self)
         db.session.commit()
 
     def json(self):
-        """
-        Json representation of the ground model.
-        :return:
-        """
         json = {
             'id': self.id,
             'source_id': self.source_id,
@@ -366,10 +349,6 @@ class Ground(db.Model):
         return json
 
     def geo_json(self):
-        """
-        Json representation of the ground model.
-        :return:
-        """
         return {
             'id': self.id,
             'status': self.status.value if self.status else None,
@@ -390,29 +369,14 @@ class Ground(db.Model):
 
     @staticmethod
     def get_by_id(id):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
         return Ground.query.filter_by(id=id).first()
 
     @staticmethod
     def get_by_source_id(source_id):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
         return Ground.query.filter_by(source_id=source_id).first()
 
     @staticmethod
     def get_by_location_rect(alatitude, alongitude, blatitude, blongitude):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
         return Ground.query.filter(and_(Ground.latitude >= min(alatitude, blatitude), Ground.latitude <= max(alatitude, blatitude))) \
             .filter(and_(Ground.longitude >= min(alongitude, blongitude), Ground.longitude <= max(alongitude, blongitude))).all()
 
@@ -505,10 +469,6 @@ class Activity(Enum):
 
     @property
     def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
         return {
             'id': self.value,
             'title': self.title,
@@ -653,20 +613,10 @@ class Event(db.Model):
             else_=EventStatus.ended.value)
 
     def save(self):
-        """
-        Persist Item into the database
-        :return:
-        """
         db.session.add(self)
         db.session.commit()
 
     def update(self, title=None, description=None):
-        """
-        Update the records in the item
-        :param name: Name
-        :param description: Description
-        :return:
-        """
         if title is not None:
             self.title = title
         if description is not None:
@@ -674,20 +624,10 @@ class Event(db.Model):
         db.session.commit()
 
     def cancel(self):
-        """
-        Update the records in the item
-        :param name: Name
-        :param description: Description
-        :return:
-        """
         self.canceled = True
         db.session.commit()
 
     def delete(self):
-        """
-        Delete an item
-        :return:
-        """
         db.session.delete(self)
         db.session.commit()
 
@@ -724,7 +664,7 @@ class Event(db.Model):
 
     def short_json(self):
         """
-        Json representation of the model
+        Short Json representation of the model
         :return:
         """
         return {
@@ -790,20 +730,10 @@ class Event(db.Model):
 
     @staticmethod
     def get_by_id(id):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
         return Event.query.filter_by(id=id).first()
 
     @staticmethod
     def get_by_ground_id(ground_id):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
         return Event.query.filter_by(ground_id=ground_id).first()
 
     @staticmethod
@@ -834,10 +764,6 @@ class TrainingEvent(db.Model):
         self.team = Team(max_participants)
 
     def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
         return {
             'team': self.team.json()
         }
@@ -864,21 +790,11 @@ class MatchEvent(db.Model):
         self.team_b = Team(teams_size)
 
     def update(self, scoreA, scoreB):
-        """
-        Update the records in the item
-        :param name: Name
-        :param description: Description
-        :return:
-        """
         self.team_a_score = scoreA
         self.team_b_score = scoreB
         db.session.commit()
 
     def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
         return {
             'scoreA': self.team_a_score,
             'scoreB': self.team_b_score,
@@ -910,10 +826,6 @@ class TourneyEvent(db.Model):
                 self.teams.append(Team(teams_size))
 
     def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
         return {
             'teamsCount': len(self.teams),
             'teams': list(map(lambda t: t.json(), self.teams))
@@ -939,10 +851,6 @@ class Team(db.Model):
         self.modified_at = datetime.datetime.utcnow()
 
     def save(self):
-        """
-        Persist Item into the database
-        :return:
-        """
         db.session.add(self)
         db.session.commit()
 
@@ -950,18 +858,10 @@ class Team(db.Model):
         db.session.commit()
 
     def delete(self):
-        """
-        Delete an item
-        :return:
-        """
         db.session.delete(self)
         db.session.commit()
 
     def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
         return {
             'id': self.id, 
             'maxParticipants': self.max_participants,
@@ -990,11 +890,6 @@ class Team(db.Model):
 
     @staticmethod
     def get_by_id(id):
-        """
-        Filter a user by Id.
-        :param user_id:
-        :return: User or None
-        """
         return Team.query.filter_by(id=id).first()
 
 class EventMessage(db.Model):
@@ -1018,26 +913,14 @@ class EventMessage(db.Model):
         self.create_at = datetime.datetime.utcnow()
 
     def save(self):
-        """
-        Persist Item into the database
-        :return:
-        """
         db.session.add(self)
         db.session.commit()
 
     def delete(self):
-        """
-        Delete an item
-        :return:
-        """
         db.session.delete(self)
         db.session.commit()
 
     def json(self):
-        """
-        Json representation of the model
-        :return:
-        """
         return {
             'eventId': self.event_id,
             'sender': self.sender.json(),

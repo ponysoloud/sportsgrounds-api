@@ -202,13 +202,6 @@ def get_event(current_user, event_id):
 @event.route('/events/<event_id>', methods=['PUT'])
 @token_required
 def edit_event(current_user, event_id):
-    """
-    Validate the bucket Id. Also check for the name attribute in the json payload.
-    If the name exists update the bucket with the new name.
-    :param current_user: Current User
-    :param bucket_id: Bucket Id
-    :return: Http Json response
-    """
     if request.content_type == 'application/json':
         data = request.get_json()
 
@@ -281,12 +274,6 @@ def delete_event(current_user, event_id):
 @event.route('/events/<event_id>/actions/join', methods=['POST'])
 @token_required
 def join_to_event(current_user, event_id):
-    """
-    Deleting a User Bucket from the database if it exists.
-    :param current_user:
-    :param bucket_id:
-    :return:
-    """
     team_id = request.args.get('teamId', None, type=int)
 
     try:
@@ -344,12 +331,6 @@ def join_to_event(current_user, event_id):
 @event.route('/events/<event_id>/actions/leave', methods=['POST'])
 @token_required
 def leave_from_event(current_user, event_id):
-    """
-    Deleting a User Bucket from the database if it exists.
-    :param current_user:
-    :param bucket_id:
-    :return:
-    """
     try:
         int(event_id)
     except ValueError:
@@ -388,12 +369,6 @@ def leave_from_event(current_user, event_id):
 @event.route('/events/<event_id>/messages', methods=['GET'])
 @token_required
 def get_event_messages(current_user, event_id):
-    """
-    Deleting a User Bucket from the database if it exists.
-    :param current_user:
-    :param bucket_id:
-    :return:
-    """
     skip = request.args.get('skip', 0, type=int)
     count = request.args.get('count', None, type=int)
 
@@ -414,12 +389,6 @@ def get_event_messages(current_user, event_id):
 @event.route('/events/<event_id>/messages', methods=['POST'])
 @token_required
 def create_event_message(current_user, event_id):
-    """
-    Deleting a User Bucket from the database if it exists.
-    :param current_user:
-    :param bucket_id:
-    :return:
-    """
     if request.content_type == 'application/json':
         try:
             int(event_id)
@@ -477,7 +446,7 @@ def on_join_event_chat(data):
 
 @sockets.on('message', namespace='/event/messages')
 def message(data):
-    """Sent by a client when the user entered a new message.
+    """Sent by a client when the user enter a new message.
     The message is sent to all people in the room."""
     if isinstance(data, str):
         data = json.loads(data)

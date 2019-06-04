@@ -13,13 +13,6 @@ user = Blueprint('user', __name__)
 @user.route('/user', methods=['GET'])
 @token_required
 def get_current_user(current_user):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
-
     user = User.get_by_id(current_user.id)
     return response_for_user_personal(user)
 
@@ -56,12 +49,6 @@ def edit_user(current_user):
 @user.route('/users/<user_id>', methods=['GET'])
 @token_required
 def get_user(current_user, user_id):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
     try:
         int(user_id)
     except ValueError:
@@ -79,12 +66,6 @@ def get_user(current_user, user_id):
 @user.route('/users/<user_id>/teammates', methods=['GET'])
 @token_required
 def get_user_teammates(current_user, user_id):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
     try:
         int(user_id)
     except ValueError:
@@ -105,12 +86,6 @@ def get_user_teammates(current_user, user_id):
 @user.route('/users/<user_id>/actions/rate', methods=['POST'])
 @token_required
 def rate_user(current_user, user_id):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
     try:
         int(user_id)
     except ValueError:
@@ -135,12 +110,6 @@ def rate_user(current_user, user_id):
 @user.route('/users/<user_id>/actions/unrate', methods=['POST'])
 @token_required
 def unrate_user(current_user, user_id):
-    """
-    Return all the grounds owned by the user or limit them to 10.
-    Return an empty Grounds object if user has no grounds
-    :param current_user:
-    :return:
-    """
     try:
         int(user_id)
     except ValueError:

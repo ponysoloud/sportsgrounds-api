@@ -8,70 +8,36 @@ from app import app, db
 from app.models import Event, EventStatus, EventType, TrainingEvent, MatchEvent, TourneyEvent, Ground, User, Team, Activity
 
 def response(status, message, code):
-    """
-    Helper method to make a http response
-    :param status: Status message
-    :param message: Response message
-    :param code: Response status code
-    :return: Http Response
-    """
     return make_response(jsonify({
         'status': status,
         'message': message
     })), code
 
 def response_for_event(event):
-    """
-    Return the response for when a single bucket when requested by the user.
-    :param user_bucket:
-    :return:
-    """
     return make_response(jsonify({
         'status': 'success',
         'event': event
     }))
     
 def response_for_created_event(event, status_code):
-    """
-    Method returning the response when a bucket has been successfully created.
-    :param status_code:
-    :param user_bucket: Bucket
-    :return: Http Response
-    """
     return make_response(jsonify({
         'status': 'success',
         'event': event
     })), status_code
 
 def response_for_created_message(message, status_code):
-    """
-    Method returning the response when a bucket has been successfully created.
-    :param status_code:
-    :param user_bucket: Bucket
-    :return: Http Response
-    """
     return make_response(jsonify({
         'status': 'success',
         'message': message.json()
     })), status_code
 
 def get_event_json_list(events):
-    """
-    Make json objects of the grounds and add them to a list.
-    :param user_buckets: Bucket
-    :return:
-    """
     json_list = []
     for event in events:
         json_list.append(event.short_json())
     return json_list
 
 def get_message_json_list(messages):
-    """
-    Make json objects of the grounds and add them to a list.
-    :param user_buckets: Bucket
-    :return:
-    """
     json_list = []
     for message in messages:
         json_list.append(message.json())
@@ -108,14 +74,6 @@ def extract_parameters_from_socket_event_data(data):
     return current_user, event, None
 
 def response_with_pagination_events(events, previous, nex, count):
-    """
-    Make a http response for BucketList get requests.
-    :param count: Pagination Total
-    :param nex: Next page Url if it exists
-    :param previous: Previous page Url if it exists
-    :param buckets: Bucket
-    :return: Http Json response
-    """
     return make_response(jsonify({
         'status': 'success',
         'previous': previous,
@@ -125,14 +83,6 @@ def response_with_pagination_events(events, previous, nex, count):
     })), 200
 
 def response_with_pagination_messages(messages, previous, nex, skip, count):
-    """
-    Make a http response for BucketList get requests.
-    :param count: Pagination Total
-    :param nex: Next page Url if it exists
-    :param previous: Previous page Url if it exists
-    :param buckets: Bucket
-    :return: Http Json response
-    """
     return make_response(jsonify({
         'status': 'success',
         'previous': previous,
@@ -143,17 +93,6 @@ def response_with_pagination_messages(messages, previous, nex, skip, count):
     })), 200
 
 def paginate_events(page, ground_id, status_value, type_value, activity_value, owner_id, participant_id):
-    """
-    Get a user by Id, then get hold of their buckets and also paginate the results.
-    There is also an option to search for a bucket name if the query param is set.
-    Generate previous and next pagination urls
-    :param q: Query parameter
-    :param user_id: User Id
-    :param user: Current User
-    :param page: Page number
-    :return: Pagination next url, previous url and the user buckets.
-    """
-
     ground = Ground.get_by_id(ground_id) if ground_id else None
     status = EventStatus(status_value) if status_value else None
     activity = Activity(activity_value) if activity_value else None
@@ -207,17 +146,6 @@ def paginate_events(page, ground_id, status_value, type_value, activity_value, o
     return items, nex, pagination, previous
 
 def paginate_messages(skip, count, event, user_id):
-    """
-    Get a user by Id, then get hold of their buckets and also paginate the results.
-    There is also an option to search for a bucket name if the query param is set.
-    Generate previous and next pagination urls
-    :param q: Query parameter
-    :param user_id: User Id
-    :param user: Current User
-    :param page: Page number
-    :return: Pagination next url, previous url and the user buckets.
-    """
-
     limit = count
     if not limit:
         limit = app.config['MESSAGES_PER_PAGE']

@@ -14,7 +14,7 @@ app = Flask(__name__, static_folder=None)
 # Enabling cors
 CORS(app)
 
-# app configuration
+# App configuration
 app_configuration = os.getenv('APP_CONFIGURATION', 'app.config.DevelopmentConfig')
 app.config.from_object(app_configuration)
 

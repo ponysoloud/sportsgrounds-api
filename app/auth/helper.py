@@ -10,7 +10,6 @@ def token_required(f):
     :param f:
     :return:
     """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = None
